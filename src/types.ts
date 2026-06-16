@@ -18,6 +18,11 @@ export interface TechStackItem {
   notes?: string;
 }
 
+export interface ProjectScreenshot {
+  url: string;
+  caption: string;
+}
+
 export interface Project {
   id: string;
   created_at?: string;
@@ -43,6 +48,7 @@ export interface Project {
   is_public: boolean;
   public_name: string;
   screenshot_url: string;
+  screenshot_gallery?: ProjectScreenshot[];
   live_url: string;
   description: string;
 }

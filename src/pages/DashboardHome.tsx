@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS projects (
   is_public BOOLEAN DEFAULT false NOT NULL,
   public_name TEXT,
   screenshot_url TEXT,
+  screenshot_gallery JSONB DEFAULT '[]'::jsonb NOT NULL,
   live_url TEXT,
   description TEXT
 );
@@ -73,6 +74,9 @@ CREATE TABLE IF NOT EXISTS orders (
   deadline TEXT,
   status TEXT DEFAULT 'new' NOT NULL
 );
+
+ALTER TABLE projects
+ADD COLUMN IF NOT EXISTS screenshot_gallery JSONB DEFAULT '[]'::jsonb NOT NULL;
 
 -- 3. AKTIFKAN RLS (Row Level Security)
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;

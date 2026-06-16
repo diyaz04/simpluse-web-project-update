@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/db';
-import { Project } from '../types';
+import { Project, ProjectScreenshot } from '../types';
 import { motion } from 'motion/react';
 import { 
   ArrowRight, 
@@ -28,6 +28,7 @@ interface LandingPageProps {
 export default function LandingPage({ onNavigate }: LandingPageProps) {
   const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeProjectImages, setActiveProjectImages] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function loadFeatured() {
@@ -43,6 +44,16 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
     }
     loadFeatured();
   }, []);
+
+  const getProjectGallery = (project: Project): ProjectScreenshot[] => {
+    if (project.screenshot_gallery && project.screenshot_gallery.length > 0) {
+      return project.screenshot_gallery;
+    }
+
+    return project.screenshot_url
+      ? [{ url: project.screenshot_url, caption: project.description || '' }]
+      : [];
+  };
 
   const services = [
     {
@@ -335,17 +346,25 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredProjects.map((p) => (
-              <div 
-                key={p.id}
-                className="bg-[#111111]/70 backdrop-blur-md border border-white/10 hover:border-[#F97316]/40 rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300"
-              >
+            {featuredProjects.map((p) => {
+              const gallery = getProjectGallery(p);
+              const activeIndex = Math.min(activeProjectImages[p.id] || 0, Math.max(gallery.length - 1, 0));
+              const activeImage = gallery[activeIndex] || {
+                url: p.screenshot_url,
+                caption: p.description || ''
+              };
+
+              return (
+                <div 
+                  key={p.id}
+                  className="bg-[#111111]/70 backdrop-blur-md border border-white/10 hover:border-[#F97316]/40 rounded-2xl overflow-hidden group flex flex-col justify-between transition-all duration-300"
+                >
                 <div>
                   {/* Thumbnail */}
                   <div className="relative aspect-video w-full overflow-hidden bg-dark-800">
                     <img 
-                      src={p.screenshot_url} 
-                      alt={p.public_name} 
+                      src={activeImage.url} 
+                      alt={activeImage.caption || p.public_name || p.project_name} 
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
                       }}
@@ -363,6 +382,37 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                     <p className="text-slate-400 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-6">
                       {p.description || 'Tidak ada deskripsi publik.'}
                     </p>
+
+                    {activeImage.caption && (
+                      <p className="text-[11px] text-slate-300 leading-relaxed bg-white/5 border border-white/5 rounded-xl p-3 mb-4">
+                        {activeImage.caption}
+                      </p>
+                    )}
+
+                    {gallery.length > 1 && (
+                      <div className="grid grid-cols-5 gap-1.5 mb-5">
+                        {gallery.map((shot, shotIndex) => (
+                          <button
+                            key={`${shot.url}-${shotIndex}`}
+                            type="button"
+                            onClick={() => setActiveProjectImages((current) => ({ ...current, [p.id]: shotIndex }))}
+                            title={shot.caption || `Gambar ${shotIndex + 1}`}
+                            className={`aspect-video rounded-lg overflow-hidden border cursor-pointer transition ${
+                              activeIndex === shotIndex
+                                ? 'border-[#F97316] ring-2 ring-[#F97316]/20'
+                                : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
+                            }`}
+                          >
+                            <img
+                              src={shot.url}
+                              alt={shot.caption || `Screenshot ${shotIndex + 1}`}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     
                     {/* Tech Stack Pills */}
                     <div className="flex flex-wrap gap-1.5 mb-2">
@@ -390,15 +440,16 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                       href={p.live_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center space-x-1.5 text-xs text-[#F97316] hover:text-[#ea580c] pt-4 transition"
+                      className="inline-flex items-center justify-center space-x-1.5 text-xs bg-[#F97316] hover:bg-[#ea580c] text-black px-4 py-2.5 rounded-full font-extrabold transition mt-4"
                     >
-                      <span className="font-bold">Lihat Live Website</span>
+                      <span>Buka Website</span>
                       <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
                     </a>
                   </div>
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

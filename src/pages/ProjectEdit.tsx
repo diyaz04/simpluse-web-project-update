@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../lib/db';
-import { Project, TechStackCategory, TechStackItem, ProjectStatus } from '../types';
+import { Project, ProjectScreenshot, TechStackCategory, TechStackItem, ProjectStatus } from '../types';
 import { 
   ArrowLeft, 
   Save, 
@@ -14,12 +14,96 @@ import {
   User,
   HeartCrack,
   Link,
-  Laptop
+  Laptop,
+  Loader2,
+  ImagePlus
 } from 'lucide-react';
 
 interface ProjectEditProps {
   projectId?: string; // If undefined, we are in CREATE mode
   onNavigate: (route: string) => void;
+}
+
+const MAX_PROJECT_SCREENSHOTS = 5;
+const FALLBACK_SCREENSHOT_URL = 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80';
+
+const env = (import.meta as any).env || {};
+const cloudinaryCloudName = env.VITE_CLOUDINARY_CLOUD_NAME || '';
+const cloudinaryUploadPreset = env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
+const isDemoMode = String(env.VITE_DEMO_MODE || '').toLowerCase() === 'true';
+
+function hasCloudinaryConfig() {
+  return Boolean(cloudinaryCloudName && cloudinaryUploadPreset);
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function compressImage(file: File): Promise<File> {
+  const dataUrl = await fileToDataUrl(file);
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('File gambar tidak bisa diproses.'));
+    img.src = dataUrl;
+  });
+
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Browser tidak mendukung kompresi gambar.');
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result);
+      else reject(new Error('Gagal mengompres gambar.'));
+    }, 'image/webp', 0.78);
+  });
+
+  const cleanName = file.name.replace(/\.[^.]+$/, '') || 'project-screenshot';
+  return new File([blob], `${cleanName}.webp`, { type: 'image/webp' });
+}
+
+async function uploadToCloudinary(file: File): Promise<string> {
+  if (!hasCloudinaryConfig()) {
+    throw new Error('Cloudinary belum dikonfigurasi. Isi VITE_CLOUDINARY_CLOUD_NAME dan VITE_CLOUDINARY_UPLOAD_PRESET.');
+  }
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('upload_preset', cloudinaryUploadPreset);
+  form.append('folder', 'simpluse/project-screenshots');
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`, {
+    method: 'POST',
+    body: form
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Upload Cloudinary gagal: ${message}`);
+  }
+
+  const data = await response.json();
+  if (!data.secure_url) {
+    throw new Error('Cloudinary tidak mengembalikan URL gambar.');
+  }
+
+  return data.secure_url;
 }
 
 export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps) {
@@ -48,11 +132,14 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
   const [isPublic, setIsPublic] = useState(false);
   const [publicName, setPublicName] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
+  const [screenshots, setScreenshots] = useState<ProjectScreenshot[]>([]);
   const [liveUrl, setLiveUrl] = useState('');
   const [description, setDescription] = useState('');
 
   // Drag and drop uploader state
   const [dragActive, setDragActive] = useState(false);
+  const [isUploadingScreenshots, setIsUploadingScreenshots] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories: TechStackCategory[] = [
@@ -87,6 +174,13 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
             setIsPublic(p.is_public || false);
             setPublicName(p.public_name || '');
             setScreenshotUrl(p.screenshot_url || '');
+            setScreenshots(
+              p.screenshot_gallery && p.screenshot_gallery.length > 0
+                ? p.screenshot_gallery.slice(0, MAX_PROJECT_SCREENSHOTS)
+                : p.screenshot_url
+                ? [{ url: p.screenshot_url, caption: '' }]
+                : []
+            );
             setLiveUrl(p.live_url || '');
             setDescription(p.description || '');
           } else {
@@ -146,8 +240,8 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelected(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleScreenshotFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -156,18 +250,73 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelected(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      handleScreenshotFiles(Array.from(e.target.files));
+      e.target.value = '';
     }
   };
 
-  const handleFileSelected = (file: File) => {
-    // Read to Base64 to offer instant offline fidelity for local preview + local storage serialization.
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setScreenshotUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleScreenshotFiles = async (files: File[]) => {
+    const availableSlots = MAX_PROJECT_SCREENSHOTS - screenshots.length;
+    const imageFiles = files.filter((file) => file.type.startsWith('image/')).slice(0, availableSlots);
+
+    if (availableSlots <= 0) {
+      alert(`Maksimal ${MAX_PROJECT_SCREENSHOTS} gambar untuk satu project.`);
+      return;
+    }
+
+    if (imageFiles.length === 0) {
+      alert('Pilih file gambar yang valid.');
+      return;
+    }
+
+    setIsUploadingScreenshots(true);
+    setUploadError('');
+
+    try {
+      const uploadedItems: ProjectScreenshot[] = [];
+
+      for (const file of imageFiles) {
+        const compressedFile = await compressImage(file);
+        const url = hasCloudinaryConfig()
+          ? await uploadToCloudinary(compressedFile)
+          : isDemoMode
+          ? await fileToDataUrl(compressedFile)
+          : '';
+
+        if (!url) {
+          throw new Error('Cloudinary belum dikonfigurasi. Isi env Cloudinary atau aktifkan demo mode untuk preview lokal.');
+        }
+
+        uploadedItems.push({
+          url,
+          caption: file.name.replace(/\.[^.]+$/, '')
+        });
+      }
+
+      setScreenshots((current) => {
+        const next = [...current, ...uploadedItems].slice(0, MAX_PROJECT_SCREENSHOTS);
+        setScreenshotUrl(next[0]?.url || '');
+        return next;
+      });
+    } catch (err: any) {
+      console.error('Screenshot upload error:', err);
+      setUploadError(err?.message || 'Gagal upload screenshot project.');
+    } finally {
+      setIsUploadingScreenshots(false);
+    }
+  };
+
+  const handleScreenshotCaptionChange = (index: number, caption: string) => {
+    setScreenshots((current) => current.map((item, idx) => idx === index ? { ...item, caption } : item));
+  };
+
+  const handleRemoveScreenshot = (index: number) => {
+    setScreenshots((current) => {
+      const next = current.filter((_, idx) => idx !== index);
+      setScreenshotUrl(next[0]?.url || '');
+      return next;
+    });
   };
 
   // Form submission dispatcher
@@ -195,7 +344,8 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
         tech_stack: techStack,
         is_public: isPublic,
         public_name: publicName || projectName,
-        screenshot_url: screenshotUrl || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+        screenshot_url: screenshots[0]?.url || screenshotUrl || FALLBACK_SCREENSHOT_URL,
+        screenshot_gallery: screenshots,
         live_url: liveUrl,
         description: description
       };
@@ -547,9 +697,19 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                 />
               </div>
 
-              {/* Drag and Drop Screenshot Uploader with Fallback Text Link Input */}
+              {/* Cloudinary gallery uploader */}
               <div className="space-y-4">
-                <label className="block text-xs font-semibold text-slate-400 font-mono tracking-wide uppercase">Screenshot Visual Proyek (Cloudinary / Sandbox Local)</label>
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 font-mono tracking-wide uppercase">Screenshot Visual Proyek</label>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Upload maksimal {MAX_PROJECT_SCREENSHOTS} gambar. File dikompres dulu lalu dikirim ke Cloudinary.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono text-brand-orange-400 bg-brand-orange-500/10 border border-brand-orange-500/15 px-2.5 py-1 rounded-lg self-start sm:self-auto">
+                    {screenshots.length}/{MAX_PROJECT_SCREENSHOTS} GAMBAR
+                  </span>
+                </div>
                 
                 {/* Drag and drop active layout */}
                 <div 
@@ -570,6 +730,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     accept="image/*"
+                    multiple
                     className="hidden"
                   />
                   
@@ -587,17 +748,80 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                     </div>
                   ) : (
                     <>
-                      <Upload className="w-8 h-8 text-brand-orange-500 animate-pulse shrink-0" />
+                      {isUploadingScreenshots ? (
+                        <Loader2 className="w-8 h-8 text-brand-orange-500 animate-spin shrink-0" />
+                      ) : (
+                        <ImagePlus className="w-8 h-8 text-brand-orange-500 animate-pulse shrink-0" />
+                      )}
                       <div>
-                        <p className="text-white font-bold text-xs sm:text-sm">Seret & Taruh Screenshot ke Sini atau Klik untuk Telusuri File</p>
-                        <p className="text-slate-500 text-[10px] mt-1">Mendukung format gambar JPEG, PNG, WEBP s/d resolusi Full High Definition.</p>
+                        <p className="text-white font-bold text-xs sm:text-sm">
+                          {isUploadingScreenshots ? 'Mengompres & Upload ke Cloudinary...' : 'Seret beberapa screenshot ke sini atau klik untuk upload'}
+                        </p>
+                        <p className="text-slate-500 text-[10px] mt-1">
+                          {isUploadingScreenshots ? 'Tunggu sebentar sampai semua gambar selesai diproses.' : `JPEG, PNG, atau WEBP. Sisa slot: ${MAX_PROJECT_SCREENSHOTS - screenshots.length} gambar.`}
+                        </p>
                       </div>
                     </>
                   )}
                 </div>
 
+                {!hasCloudinaryConfig() && !isDemoMode && (
+                  <div className="p-3 rounded-xl border border-amber-500/15 bg-amber-500/5 text-[11px] text-amber-300 leading-relaxed">
+                    Cloudinary belum aktif. Isi <span className="font-mono text-white">VITE_CLOUDINARY_CLOUD_NAME</span> dan <span className="font-mono text-white">VITE_CLOUDINARY_UPLOAD_PRESET</span> supaya upload gambar bisa berjalan.
+                  </div>
+                )}
+
+                {uploadError && (
+                  <div className="p-3 rounded-xl border border-red-500/20 bg-red-950/30 text-[11px] text-red-300 leading-relaxed">
+                    {uploadError}
+                  </div>
+                )}
+
+                {screenshots.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {screenshots.map((shot, index) => (
+                      <div key={`${shot.url}-${index}`} className="bg-dark-900 border border-dark-650 rounded-2xl p-3 space-y-3">
+                        <div className="aspect-video rounded-xl overflow-hidden bg-black border border-dark-600 relative">
+                          <img
+                            src={shot.url}
+                            alt={shot.caption || `Screenshot project ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                          {index === 0 && (
+                            <span className="absolute top-2 left-2 text-[9px] font-mono font-bold bg-brand-orange-500 text-black px-2 py-1 rounded">
+                              THUMBNAIL
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveScreenshot(index)}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-red-300 hover:text-red-100 hover:bg-red-500/20 transition cursor-pointer"
+                            title="Hapus gambar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
+                            Keterangan Gambar {index + 1}
+                          </label>
+                          <input
+                            type="text"
+                            value={shot.caption}
+                            onChange={(e) => handleScreenshotCaptionChange(index, e.target.value)}
+                            placeholder="Ex: Tampilan homepage desktop"
+                            className="w-full bg-dark-800 border border-dark-600 focus:border-brand-orange-500 text-xs text-white rounded-lg px-3 py-2.5 outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Direct text link copy fallback input */}
-                <div>
+                <div className="hidden">
                   <label className="block text-[10px] font-bold font-mono tracking-wider uppercase text-slate-400 mb-2">
                     Atau Paste Direct URL Screenshot (Cloudinary) Secara Manual:
                   </label>

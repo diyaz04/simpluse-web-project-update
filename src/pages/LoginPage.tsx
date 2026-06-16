@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../lib/db';
-import { Rocket, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Rocket, Lock, Mail, Home, Eye, EyeOff } from 'lucide-react';
 
 interface LoginPageProps {
   onNavigate: (route: string) => void;
@@ -41,6 +41,15 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#F97316]/10 rounded-full blur-[110px] pointer-events-none select-none animate-pulse-glow" />
 
       <div className="bg-[#111111]/75 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full max-w-md relative z-10 shadow-2xl">
+        <button
+          type="button"
+          onClick={() => onNavigate('#/')}
+          className="mb-6 inline-flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition cursor-pointer"
+        >
+          <Home className="w-3.5 h-3.5 text-[#F97316]" />
+          <span>Ke Landing Page</span>
+        </button>
+
         {/* Brand signature header */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center mx-auto mb-4 hover:scale-105 duration-200 transition shadow-[0_0_20px_rgba(249,115,22,0.15)] overflow-hidden">

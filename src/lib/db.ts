@@ -37,6 +37,16 @@ const DEMO_PROJECTS: Project[] = [
     is_public: true,
     public_name: 'Nusantara Residence Web Portal',
     screenshot_url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
+    screenshot_gallery: [
+      {
+        url: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Hero landing page properti dengan visual hunian modern.'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Showcase interior dan area detail unit untuk calon pembeli.'
+      }
+    ],
     live_url: 'https://example.com',
     description: 'Demo landing page interaktif untuk properti, galeri, dan formulir kontak.'
   },
@@ -60,6 +70,16 @@ const DEMO_PROJECTS: Project[] = [
     is_public: true,
     public_name: 'Official Web & Portal Akademik SMA Bina Mulia',
     screenshot_url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80',
+    screenshot_gallery: [
+      {
+        url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Halaman profil sekolah dan informasi akademik utama.'
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Preview konten kegiatan dan fasilitas pendidikan.'
+      }
+    ],
     live_url: 'https://example.com',
     description: 'Demo portal akademik dengan pengumuman, materi ajar, dan formulir PPDB.'
   }
@@ -131,6 +151,7 @@ function makeLocalProject(project: Partial<Project>): Project {
     is_public: project.is_public ?? false,
     public_name: project.public_name || '',
     screenshot_url: project.screenshot_url || 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+    screenshot_gallery: project.screenshot_gallery || [],
     live_url: project.live_url || '',
     description: project.description || ''
   };

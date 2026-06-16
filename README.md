@@ -22,6 +22,7 @@ Production mode expects real Supabase auth and data by default:
 - `SUPABASE_SERVICE_ROLE_KEY` for server-side order inserts, recommended
 - `OWNER_EMAIL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL` for owner notifications
 - `VITE_PUBLIC_CONTACT_EMAIL` if you want a public email link in the footer
+- `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` for project screenshot uploads
 
 Create dashboard admins in Supabase Authentication. The app does not accept shared hardcoded admin passwords unless demo mode is explicitly enabled.
 
