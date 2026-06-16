@@ -516,7 +516,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                     type="text"
                     value={publicName}
                     onChange={(e) => setPublicName(e.target.value)}
-                    placeholder="Ex: Website Company Profile Klien"
+                    placeholder="Ex: Nusantara Residence Web Portal"
                     className="w-full bg-dark-900 border border-dark-650 focus:border-brand-orange-500 text-white rounded-xl px-4 py-3 text-xs sm:text-sm outline-none transition"
                   />
                   <span className="text-[10px] text-slate-500 mt-1 block">Boleh berbeda atau dibuat lebih eksotis dari nama internal.</span>
@@ -529,7 +529,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                     type="url"
                     value={liveUrl}
                     onChange={(e) => setLiveUrl(e.target.value)}
-                    placeholder="Ex: https://domain-klien.id"
+                    placeholder="Ex: https://nusantara.example.id"
                     className="w-full bg-dark-900 border border-dark-650 focus:border-brand-orange-500 text-white rounded-xl px-4 py-3 text-xs sm:text-sm outline-none transition"
                   />
                 </div>

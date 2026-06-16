@@ -18,9 +18,7 @@ export default function PortfolioPage({ onNavigate }: PortfolioPageProps) {
   useEffect(() => {
     async function loadPortfolio() {
       try {
-        const data = await db.getProjects();
-        // Filter out non-public ones
-        const publics = data.filter(p => p.is_public);
+        const publics = await db.getPublicProjects();
         setProjects(publics);
         setFilteredProjects(publics);
       } catch (e) {

@@ -1,6 +1,6 @@
 {
   "name": "Simpluse Web Project",
-  "description": "Modern and professional web development services for businesses and individuals.",
+  "description": "Professional website service business platform providing digital landing pages, company profiles, school webs, and e-commerce development.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../lib/db';
-import { Rocket, Lock, Mail, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Rocket, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 interface LoginPageProps {
   onNavigate: (route: string) => void;
@@ -12,6 +12,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const isDemoMode = db.isDemoMode();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setErrorMsg('Kesalahan tak terduga terjadi selama proses autentikasi.');
+      setErrorMsg(err?.message || 'Kesalahan tak terduga terjadi selama proses autentikasi.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -39,17 +40,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
       {/* Absolute glow design circles */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#F97316]/10 rounded-full blur-[110px] pointer-events-none select-none animate-pulse-glow" />
 
-      <div className="w-full max-w-md relative z-10 space-y-4">
-        <button
-          type="button"
-          onClick={() => onNavigate('#/')}
-          className="inline-flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 hover:text-white transition cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>Kembali ke Landing Page</span>
-        </button>
-
-        <div className="bg-[#111111]/75 backdrop-blur-md p-8 rounded-2xl border border-white/10 shadow-2xl">
+      <div className="bg-[#111111]/75 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full max-w-md relative z-10 shadow-2xl">
         {/* Brand signature header */}
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center mx-auto mb-4 hover:scale-105 duration-200 transition shadow-[0_0_20px_rgba(249,115,22,0.15)] overflow-hidden">
@@ -86,7 +77,7 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Ex: admin@simpluse.id"
+                placeholder={isDemoMode ? 'demo@simpluse.local' : 'admin@example.com'}
                 className="w-full bg-white/5 border border-white/10 focus:border-[#F97316]/60 text-white rounded-xl py-3 pl-10 pr-4 text-sm outline-none transition duration-150 focus:shadow-[0_0_15px_rgba(249,115,22,0.15)]"
               />
             </div>
@@ -139,15 +130,15 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
           </button>
         </form>
 
-        {/* Informative credentials guide panel (Very friendly for testing!) */}
-        <div className="mt-8 pt-6 border-t border-white/5 text-center space-y-2 select-none">
-          <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-bold">Gunakan Akun Penguji (Sandbox):</p>
-          <div className="bg-white/5 p-3.5 rounded-2xl border border-white/5 inline-block text-left text-[11px] font-mono text-slate-400 space-y-1">
-            <p>📧 Email: <span className="text-white">diyaznajib.93@gmail.com</span> atau <span className="text-white">admin@simpluse.id</span></p>
-            <p>🔑 Sandi: <span className="text-white">admin123</span> atau <span className="text-white">admin</span></p>
+        {isDemoMode && (
+          <div className="mt-8 pt-6 border-t border-white/5 text-center space-y-2 select-none">
+            <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-bold">Demo Mode Aktif:</p>
+            <div className="bg-white/5 p-3.5 rounded-2xl border border-white/5 inline-block text-left text-[11px] font-mono text-slate-400 space-y-1">
+              <p>Email: <span className="text-white">demo@simpluse.local</span></p>
+              <p>Sandi: <span className="text-white">demo-admin</span></p>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
       </div>
     </div>
   );

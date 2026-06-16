@@ -21,6 +21,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, currentRoute, onNavigate }: DashboardLayoutProps) {
   const user = db.getCurrentUser();
   const isSupabase = db.isSupabaseConfigured();
+  const isDemoMode = db.isDemoMode();
 
   const handleLogout = () => {
     db.logout();
@@ -82,19 +83,23 @@ export default function DashboardLayout({ children, currentRoute, onNavigate }: 
           {/* Supabase Status Panel */}
           <div className="p-4 bg-white/5 rounded-2xl border border-white/5 shadow-inner">
             <div className="flex items-center space-x-2 mb-1.5">
-              {isSupabase ? (
+              {isSupabase && !isDemoMode ? (
                 <Server className="w-4 h-4 text-emerald-400" />
+              ) : isDemoMode ? (
+                <FlameKindling className="w-4 h-4 text-amber-400" />
               ) : (
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                <AlertTriangle className="w-4 h-4 text-red-400" />
               )}
               <span className="text-xs font-bold text-slate-200">
-                {isSupabase ? 'Supabase Connected' : 'Local Sandbox Mode'}
+                {isSupabase && !isDemoMode ? 'Supabase Connected' : isDemoMode ? 'Demo Mode' : 'Supabase Required'}
               </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isSupabase 
-                ? 'Data disinkronkan secara langsung ke database cloud PostgreSQL.' 
-                : 'Menyimpan ke memori browser lokal. Pasang VITE_SUPABASE_URL di .env untuk integrasi cloud.'}
+              {isSupabase && !isDemoMode
+                ? 'Data dan auth berjalan melalui Supabase.'
+                : isDemoMode
+                ? 'Data contoh tersimpan di browser dan hanya aktif karena VITE_DEMO_MODE=true.'
+                : 'Isi konfigurasi Supabase untuk menjalankan mode produksi.'}
             </p>
           </div>
 

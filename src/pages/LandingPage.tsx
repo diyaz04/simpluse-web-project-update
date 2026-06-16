@@ -32,9 +32,8 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
   useEffect(() => {
     async function loadFeatured() {
       try {
-        const data = await db.getProjects();
-        // filter public
-        const publics = data.filter(p => p.is_public).slice(0, 3);
+        const data = await db.getPublicProjects();
+        const publics = data.slice(0, 3);
         setFeaturedProjects(publics);
       } catch (e) {
         console.error('Failed to load projects for landing page preview:', e);

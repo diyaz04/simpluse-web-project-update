@@ -169,7 +169,7 @@ Mohon dibantu konfirmasi kuotasinya ya admin, terimakasih!`;
               <div>
                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Pemesanan Berhasil Dikirim!</h2>
                 <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed font-sans">
-                  Terima kasih, data kebutuhan website Anda telah tersimpan dengan aman di database cloud kami dan notifikasi email owner telah dipicu.
+                  Terima kasih, data kebutuhan website Anda telah diterima dan akan segera ditindaklanjuti oleh tim kami.
                 </p>
                 <div className="mt-8 p-4 bg-white/5 rounded-2xl max-w-sm mx-auto border border-white/5 flex items-center space-x-3 text-left">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
@@ -326,7 +326,7 @@ Mohon dibantu konfirmasi kuotasinya ya admin, terimakasih!`;
               </button>
 
               <p className="text-[10px] text-center text-slate-500 leading-normal select-none">
-                Dengan menekan tombol, order Anda akan dicatat dalam database, memicu email terenkripsi ke admin via Resend, dan langsung membuka WhatsApp secara terenkripsi.
+                Dengan menekan tombol, order Anda akan dicatat dan browser akan membuka WhatsApp untuk diskusi lanjutan.
               </p>
             </form>
           )}

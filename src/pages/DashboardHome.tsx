@@ -37,6 +37,93 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
   const [loading, setLoading] = useState(true);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(true);
+  const isDemoMode = db.isDemoMode();
+  const supabaseSetupSql = `-- 1. SETUP TABEL 'projects'
+CREATE TABLE IF NOT EXISTS projects (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  client_name TEXT NOT NULL,
+  client_wa TEXT,
+  client_email TEXT,
+  project_name TEXT NOT NULL,
+  internal_notes TEXT,
+  status TEXT DEFAULT 'ongoing' NOT NULL,
+  start_date DATE,
+  deadline DATE,
+  total_price NUMERIC DEFAULT 0,
+  dp_paid NUMERIC DEFAULT 0,
+  tech_stack JSONB DEFAULT '[]'::jsonb NOT NULL,
+  is_public BOOLEAN DEFAULT false NOT NULL,
+  public_name TEXT,
+  screenshot_url TEXT,
+  live_url TEXT,
+  description TEXT
+);
+
+-- 2. SETUP TABEL 'orders'
+CREATE TABLE IF NOT EXISTS orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  full_name TEXT NOT NULL,
+  whatsapp TEXT,
+  email TEXT,
+  website_type TEXT,
+  description TEXT,
+  budget TEXT,
+  deadline TEXT,
+  status TEXT DEFAULT 'new' NOT NULL
+);
+
+-- 3. AKTIFKAN RLS (Row Level Security)
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public projects are readable" ON projects;
+DROP POLICY IF EXISTS "Authenticated users can insert projects" ON projects;
+DROP POLICY IF EXISTS "Authenticated users can update projects" ON projects;
+DROP POLICY IF EXISTS "Authenticated users can delete projects" ON projects;
+DROP POLICY IF EXISTS "Anyone can submit orders" ON orders;
+DROP POLICY IF EXISTS "Authenticated users can read orders" ON orders;
+DROP POLICY IF EXISTS "Authenticated users can update orders" ON orders;
+DROP POLICY IF EXISTS "Authenticated users can delete orders" ON orders;
+
+-- Public site: only public portfolio rows are readable.
+CREATE POLICY "Public projects are readable"
+ON projects FOR SELECT
+USING (is_public = true OR auth.role() = 'authenticated');
+
+-- Dashboard: authenticated Supabase users can manage projects.
+CREATE POLICY "Authenticated users can insert projects"
+ON projects FOR INSERT TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update projects"
+ON projects FOR UPDATE TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can delete projects"
+ON projects FOR DELETE TO authenticated
+USING (true);
+
+-- Public order form: visitors can submit leads.
+CREATE POLICY "Anyone can submit orders"
+ON orders FOR INSERT
+WITH CHECK (true);
+
+-- Dashboard: authenticated Supabase users can manage orders.
+CREATE POLICY "Authenticated users can read orders"
+ON orders FOR SELECT TO authenticated
+USING (true);
+
+CREATE POLICY "Authenticated users can update orders"
+ON orders FOR UPDATE TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can delete orders"
+ON orders FOR DELETE TO authenticated
+USING (true);`;
 
   // Stats calculation
   const [stats, setStats] = useState({
@@ -221,15 +308,20 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
           </div>
           
           <div className="flex items-center space-x-2">
-            {db.isSupabaseConfigured() ? (
+            {db.isSupabaseConfigured() && !isDemoMode ? (
               <span className="inline-flex items-center space-x-1.5 bg-emerald-500/10 text-emerald-400 px-3.5 py-1.5 border border-emerald-500/20 rounded-full font-mono text-[11px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>AKTIF (TERHUBUNG KE SUPABASE)</span>
               </span>
-            ) : (
+            ) : isDemoMode ? (
               <span className="inline-flex items-center space-x-1.5 bg-amber-500/10 text-amber-400 px-3.5 py-1.5 border border-amber-500/20 rounded-full font-mono text-[11px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>LOCAL SANDBOX (LOCAL STORAGE FALLBACK)</span>
+                <span>DEMO MODE (LOCAL STORAGE)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center space-x-1.5 bg-red-500/10 text-red-400 px-3.5 py-1.5 border border-red-500/20 rounded-full font-mono text-[11px] font-bold">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span>SUPABASE WAJIB DIKONFIGURASI</span>
               </span>
             )}
             
@@ -251,7 +343,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
                 <h4 className="text-sm font-bold text-white">Apa yang harus saya lakukan di Supabase?</h4>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Supabase membutuhkan struktur tabel yang sesuai agar data aplikasi web (Proyek Klien dan Leads Order) dapat tersimpan secara permanen. Silakan jalankan query di bawah ini pada dashboard Supabase Anda:
+                Supabase membutuhkan tabel, policy RLS, dan user Auth. Jalankan SQL di bawah ini, lalu buat akun admin lewat Supabase Authentication untuk login dashboard.
               </p>
               
               <ol className="list-decimal list-inside text-[11px] text-slate-400 space-y-1.5 pl-1.5 font-medium">
@@ -265,45 +357,7 @@ export default function DashboardHome({ onNavigate }: DashboardHomeProps) {
               <div className="relative group">
                 <div className="absolute top-2.5 right-2.5 z-10">
                   <button
-                    onClick={() => handleCopy(`-- 1. SETUP TABEL 'projects'
-CREATE TABLE IF NOT EXISTS projects (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  client_name TEXT NOT NULL,
-  client_wa TEXT,
-  client_email TEXT,
-  project_name TEXT NOT NULL,
-  internal_notes TEXT,
-  status TEXT DEFAULT 'ongoing' NOT NULL,
-  start_date DATE,
-  deadline DATE,
-  total_price NUMERIC DEFAULT 0,
-  dp_paid NUMERIC DEFAULT 0,
-  tech_stack JSONB DEFAULT '[]'::jsonb NOT NULL,
-  is_public BOOLEAN DEFAULT false NOT NULL,
-  public_name TEXT,
-  screenshot_url TEXT,
-  live_url TEXT,
-  description TEXT
-);
-
--- 2. SETUP TABEL 'orders'
-CREATE TABLE IF NOT EXISTS orders (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  full_name TEXT NOT NULL,
-  whatsapp TEXT,
-  email TEXT,
-  website_type TEXT,
-  description TEXT,
-  budget TEXT,
-  deadline TEXT,
-  status TEXT DEFAULT 'new' NOT NULL
-);
-
--- 3. NONAKTIFKAN RLS (Row Level Security) agar Client-Side bisa menulis & membaca data langsung
-ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE orders DISABLE ROW LEVEL SECURITY;`, 'sql')}
+                    onClick={() => handleCopy(supabaseSetupSql, 'sql')}
                     className="p-1.5 bg-dark-900 border border-dark-600 hover:bg-dark-850 rounded text-slate-400 hover:text-white transition flex items-center space-x-1.5 text-[10px] cursor-pointer"
                   >
                     {copiedText === 'sql' ? (
@@ -321,50 +375,12 @@ ALTER TABLE orders DISABLE ROW LEVEL SECURITY;`, 'sql')}
                 </div>
                 
                 <pre className="p-3 bg-black/60 border border-white/5 rounded-xl font-mono text-[9px] text-slate-300 max-h-[180px] overflow-y-auto leading-relaxed scrollbar-thin whitespace-pre-wrap">
-{`-- 1. SETUP TABEL 'projects'
-CREATE TABLE IF NOT EXISTS projects (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  client_name TEXT NOT NULL,
-  client_wa TEXT,
-  client_email TEXT,
-  project_name TEXT NOT NULL,
-  internal_notes TEXT,
-  status TEXT DEFAULT 'ongoing' NOT NULL,
-  start_date DATE,
-  deadline DATE,
-  total_price NUMERIC DEFAULT 0,
-  dp_paid NUMERIC DEFAULT 0,
-  tech_stack JSONB DEFAULT '[]'::jsonb NOT NULL,
-  is_public BOOLEAN DEFAULT false NOT NULL,
-  public_name TEXT,
-  screenshot_url TEXT,
-  live_url TEXT,
-  description TEXT
-);
-
--- 2. SETUP TABEL 'orders'
-CREATE TABLE IF NOT EXISTS orders (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  full_name TEXT NOT NULL,
-  whatsapp TEXT,
-  email TEXT,
-  website_type TEXT,
-  description TEXT,
-  budget TEXT,
-  deadline TEXT,
-  status TEXT DEFAULT 'new' NOT NULL
-);
-
--- 3. NONAKTIFKAN RLS (Row Level Security) agar Client-Side bisa menulis & membaca data langsung
-ALTER TABLE projects DISABLE ROW LEVEL SECURITY;
-ALTER TABLE orders DISABLE ROW LEVEL SECURITY;`}
+{supabaseSetupSql}
                 </pre>
               </div>
               <div className="flex items-start space-x-2 p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[11px] text-amber-400 leading-relaxed font-mono">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p>CATATAN RLS: Menonaktifkan RLS sangat direkomendasikan pada tahap awal testing agar web dapat langsung membaca/menulis data tanpa terikat aturan filter user UID di database Supabase.</p>
+                <p>CATATAN RLS: RLS harus tetap aktif. Public site hanya membaca project yang ditandai publik, sedangkan data dashboard dibatasi untuk user Supabase yang sudah login.</p>
               </div>
             </div>
 
@@ -379,7 +395,7 @@ ALTER TABLE orders DISABLE ROW LEVEL SECURITY;`}
                   Ketika Anda mengunggah (deploy) aplikasi di Vercel, Vercel **tidak akan membaca file .env lokal Anda**. Anda harus memasukkan variabel lingkungan secara manual di panel Vercel. 
                 </p>
                 
-                <h5 className="text-[11px] uppercase tracking-wider font-mono text-slate-400 font-bold">Variabel Yang WAJIB Dimasukkan di Vercel:</h5>
+                <h5 className="text-[11px] uppercase tracking-wider font-mono text-slate-400 font-bold">Variabel Produksi Yang WAJIB Dimasukkan:</h5>
                 
                 <div className="space-y-2.5 font-mono text-[10px]">
                   <div className="flex items-center justify-between p-2.5 bg-black/50 rounded-lg border border-white/5">
@@ -410,14 +426,40 @@ ALTER TABLE orders DISABLE ROW LEVEL SECURITY;`}
 
                   <div className="flex items-center justify-between p-2.5 bg-black/50 rounded-lg border border-white/5">
                     <div>
-                      <span className="text-brand-orange-400 font-bold block">OWNER_EMAIL</span>
-                      <span className="text-[9px] text-slate-500">diyaznajib.93@gmail.com</span>
+                      <span className="text-brand-orange-400 font-bold block">SUPABASE_SERVICE_ROLE_KEY</span>
+                      <span className="text-[9px] text-slate-500">Opsional server-side untuk insert order yang lebih stabil</span>
                     </div>
                     <button
-                      onClick={() => handleCopy('diyaznajib.93@gmail.com', 'v3')}
+                      onClick={() => handleCopy('SUPABASE_SERVICE_ROLE_KEY', 'v3')}
                       className="text-slate-500 hover:text-white transition px-2 py-0.5 rounded border border-white/5 hover:bg-dark-850 inline-flex items-center gap-1 cursor-pointer select-none"
                     >
-                      {copiedText === 'v3' ? 'Salin Email' : 'Copy Value'}
+                      {copiedText === 'v3' ? 'Tersalin' : 'Copy Key'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-black/50 rounded-lg border border-white/5">
+                    <div>
+                      <span className="text-brand-orange-400 font-bold block">OWNER_EMAIL</span>
+                      <span className="text-[9px] text-slate-500">Alamat email owner penerima notifikasi Resend</span>
+                    </div>
+                    <button
+                      onClick={() => handleCopy('OWNER_EMAIL', 'v4')}
+                      className="text-slate-500 hover:text-white transition px-2 py-0.5 rounded border border-white/5 hover:bg-dark-850 inline-flex items-center gap-1 cursor-pointer select-none"
+                    >
+                      {copiedText === 'v4' ? 'Tersalin' : 'Copy Key'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-black/50 rounded-lg border border-white/5">
+                    <div>
+                      <span className="text-brand-orange-400 font-bold block">VITE_DEMO_MODE</span>
+                      <span className="text-[9px] text-slate-500">Biarkan false di produksi; true hanya untuk sandbox lokal</span>
+                    </div>
+                    <button
+                      onClick={() => handleCopy('VITE_DEMO_MODE=false', 'v5')}
+                      className="text-slate-500 hover:text-white transition px-2 py-0.5 rounded border border-white/5 hover:bg-dark-850 inline-flex items-center gap-1 cursor-pointer select-none"
+                    >
+                      {copiedText === 'v5' ? 'Tersalin' : 'Copy Value'}
                     </button>
                   </div>
                 </div>
