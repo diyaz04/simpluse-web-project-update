@@ -1,5 +1,6 @@
 export type ProjectStatus = 'ongoing' | 'done' | 'maintenance' | 'cancelled';
 export type OrderStatus = 'new' | 'contacted' | 'deal' | 'rejected';
+export type WebsiteCategory = 'Landing Page' | 'Company Profile' | 'Sekolah' | 'Toko Online';
 
 export type TechStackCategory = 
   | 'Frontend' 
@@ -34,6 +35,7 @@ export interface Project {
   
   // Project info
   project_name: string;
+  website_category?: WebsiteCategory | '';
   internal_notes: string;
   status: ProjectStatus;
   start_date: string; // ISO date format YYYY-MM-DD

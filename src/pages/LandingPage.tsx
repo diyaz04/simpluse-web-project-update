@@ -442,6 +442,11 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                     <h3 className="text-lg font-bold text-white group-hover:text-[#F97316] transition-colors line-clamp-1 mb-2">
                       {p.public_name || p.project_name}
                     </h3>
+                    {p.website_category && (
+                      <span className="inline-block mb-3 bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/20 text-[9px] font-mono tracking-wide px-2 py-1 rounded uppercase font-bold">
+                        {p.website_category}
+                      </span>
+                    )}
                     <p className="text-slate-400 text-xs sm:text-sm line-clamp-2 leading-relaxed mb-6">
                       {p.description || 'Tidak ada deskripsi publik.'}
                     </p>
@@ -708,6 +713,11 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                     <h4 className="text-white font-extrabold text-lg tracking-tight mb-2">
                       {selectedProject.public_name || selectedProject.project_name}
                     </h4>
+                    {selectedProject.website_category && (
+                      <span className="inline-block mb-3 bg-[#F97316]/10 text-[#F97316] border border-[#F97316]/20 text-[9px] font-mono tracking-wide px-2 py-1 rounded uppercase font-bold">
+                        {selectedProject.website_category}
+                      </span>
+                    )}
                     <p className="text-slate-400 text-sm leading-relaxed">
                       {selectedProject.description || 'Tidak ada deskripsi publik.'}
                     </p>

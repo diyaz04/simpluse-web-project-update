@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS projects (
   client_wa TEXT,
   client_email TEXT,
   project_name TEXT NOT NULL,
+  website_category TEXT,
   internal_notes TEXT,
   status TEXT DEFAULT 'ongoing' NOT NULL,
   start_date DATE,
@@ -77,6 +78,9 @@ CREATE TABLE IF NOT EXISTS orders (
 
 ALTER TABLE projects
 ADD COLUMN IF NOT EXISTS screenshot_gallery JSONB DEFAULT '[]'::jsonb NOT NULL;
+
+ALTER TABLE projects
+ADD COLUMN IF NOT EXISTS website_category TEXT;
 
 -- 3. AKTIFKAN RLS (Row Level Security)
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
@@ -650,6 +654,11 @@ USING (true);`;
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-slate-100">{p.project_name}</div>
+                        {p.website_category && (
+                          <span className="inline-block mt-1 mr-1 text-[9px] font-mono tracking-wide bg-brand-orange-500/10 text-brand-orange-400 px-1.5 py-0.5 border border-brand-orange-500/20 rounded">
+                            {p.website_category}
+                          </span>
+                        )}
                         {p.is_public ? (
                           <span className="inline-block mt-1 text-[9px] font-mono tracking-wide bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 border border-emerald-500/20 rounded">
                             Tentu di Portfolio Publik

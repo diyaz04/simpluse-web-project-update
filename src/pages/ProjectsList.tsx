@@ -53,6 +53,7 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
         p => 
           p.project_name.toLowerCase().includes(q) || 
           p.client_name.toLowerCase().includes(q) ||
+          (p.website_category && p.website_category.toLowerCase().includes(q)) ||
           (p.public_name && p.public_name.toLowerCase().includes(q))
       );
     }
@@ -195,6 +196,11 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
                       {/* Project info & Portfolio status */}
                       <td className="p-4">
                         <div className="font-semibold text-white text-sm">{p.project_name}</div>
+                        {p.website_category && (
+                          <span className="inline-block mt-1 bg-brand-orange-500/10 text-brand-orange-400 border border-brand-orange-500/20 text-[9px] font-mono tracking-wide px-1.5 py-0.5 rounded font-bold uppercase select-none">
+                            {p.website_category}
+                          </span>
+                        )}
                         {p.is_public ? (
                           <div className="flex items-center space-x-1 sm:space-x-1.5 mt-1">
                             <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[9px] font-mono tracking-wide px-1.5 py-0.5 rounded font-bold uppercase select-none">

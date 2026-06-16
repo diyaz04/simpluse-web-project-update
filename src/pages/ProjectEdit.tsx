@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../lib/db';
-import { Project, ProjectScreenshot, TechStackCategory, TechStackItem, ProjectStatus } from '../types';
+import { Project, ProjectScreenshot, TechStackCategory, TechStackItem, ProjectStatus, WebsiteCategory } from '../types';
 import { 
   ArrowLeft, 
   Save, 
@@ -118,6 +118,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
 
   // SECTION 2: Project Info
   const [projectName, setProjectName] = useState('');
+  const [websiteCategory, setWebsiteCategory] = useState<WebsiteCategory | ''>('');
   const [internalNotes, setInternalNotes] = useState('');
   const [status, setStatus] = useState<ProjectStatus>('ongoing');
   const [startDate, setStartDate] = useState('');
@@ -153,6 +154,13 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
     'Other'
   ];
 
+  const websiteCategories: WebsiteCategory[] = [
+    'Landing Page',
+    'Company Profile',
+    'Sekolah',
+    'Toko Online'
+  ];
+
   // Load existing project details if in Edit mode
   useEffect(() => {
     if (isEditMode && projectId) {
@@ -164,6 +172,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
             setClientWa(p.client_wa || '');
             setClientEmail(p.client_email || '');
             setProjectName(p.project_name || '');
+            setWebsiteCategory(p.website_category || '');
             setInternalNotes(p.internal_notes || '');
             setStatus(p.status || 'ongoing');
             setStartDate(p.start_date || '');
@@ -335,6 +344,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
         client_wa: clientWa,
         client_email: clientEmail,
         project_name: projectName,
+        website_category: websiteCategory,
         internal_notes: internalNotes,
         status: status,
         start_date: startDate,
@@ -452,6 +462,20 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
                 placeholder="Ex: Web Profile SMA 1 - PPDB Terbuka"
                 className="w-full bg-dark-900 border border-dark-650 focus:border-brand-orange-500 text-white rounded-xl px-4 py-3 text-xs sm:text-sm outline-none transition"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 font-mono tracking-wide uppercase mb-2">Kategori Website</label>
+              <select
+                value={websiteCategory}
+                onChange={(e) => setWebsiteCategory(e.target.value as WebsiteCategory | '')}
+                className="w-full bg-dark-900 border border-dark-650 focus:border-brand-orange-500 text-slate-200 rounded-xl px-4 py-3 text-xs sm:text-sm outline-none transition"
+              >
+                <option value="">Pilih kategori portfolio</option>
+                {websiteCategories.map((category) => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
             </div>
 
             <div>
