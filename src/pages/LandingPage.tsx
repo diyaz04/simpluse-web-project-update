@@ -608,11 +608,11 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
 
         return (
           <div
-            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md px-4 py-6 sm:p-8 overflow-y-auto flex items-start justify-center"
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md"
             onClick={() => setSelectedProject(null)}
           >
             <div
-              className="relative my-4 w-full max-w-6xl overflow-hidden bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl flex flex-col"
+              className="fixed left-1/2 top-1/2 z-50 flex h-[min(760px,calc(100vh-32px))] w-[min(1180px,calc(100vw-24px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl flex-col"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="shrink-0 bg-[#0b0b0b]/95 backdrop-blur border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
@@ -633,10 +633,10 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-0 lg:max-h-[calc(100vh-150px)]">
-                <div className="bg-black min-w-0">
+              <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-0">
+                <div className="bg-black min-w-0 min-h-0 lg:h-full lg:flex lg:flex-col">
                   <div
-                    className="relative h-[52vh] min-h-[280px] max-h-[620px] overflow-hidden"
+                    className="relative h-[48vh] min-h-[260px] overflow-hidden lg:h-auto lg:min-h-0 lg:flex-1"
                     onTouchStart={(event) => {
                       touchStartX.current = event.touches[0]?.clientX ?? null;
                     }}
@@ -681,7 +681,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                   </div>
 
                   {gallery.length > 1 && (
-                    <div className="p-4 border-t border-white/10 bg-[#050505] overflow-x-auto">
+                    <div className="p-4 border-t border-white/10 bg-[#050505] overflow-x-auto shrink-0">
                       <div className="flex gap-2 min-w-max">
                         {gallery.map((shot, index) => (
                           <button
@@ -708,7 +708,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                   )}
                 </div>
 
-                <aside className="p-5 sm:p-6 space-y-5 bg-[#0f0f0f] border-t lg:border-t-0 lg:border-l border-white/10 lg:overflow-y-auto">
+                <aside className="p-5 sm:p-6 space-y-5 bg-[#0f0f0f] border-t lg:border-t-0 lg:border-l border-white/10 lg:h-full lg:overflow-y-auto">
                   <div>
                     <h4 className="text-white font-extrabold text-lg tracking-tight mb-2">
                       {selectedProject.public_name || selectedProject.project_name}
