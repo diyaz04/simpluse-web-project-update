@@ -86,8 +86,8 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
 
   const openProjectDetail = (project: Project, imageIndex = 0) => {
     const gallery = getProjectGallery(project);
-    setSelectedProject(project);
     setDetailImageIndex(Math.min(imageIndex, Math.max(gallery.length - 1, 0)));
+    setSelectedProject(project);
   };
 
   const shiftDetailImage = (direction: 1 | -1) => {
@@ -608,14 +608,14 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
 
         return (
           <div
-            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md px-4 py-6 sm:p-8 flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md px-4 py-6 sm:p-8 overflow-y-auto flex items-start justify-center"
             onClick={() => setSelectedProject(null)}
           >
             <div
-              className="relative w-full max-w-6xl max-h-[92vh] overflow-y-auto bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl"
+              className="relative my-4 w-full max-w-6xl overflow-hidden bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl flex flex-col"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="sticky top-0 z-20 bg-[#0b0b0b]/95 backdrop-blur border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+              <div className="shrink-0 bg-[#0b0b0b]/95 backdrop-blur border-b border-white/10 px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] font-mono font-bold text-[#F97316] uppercase tracking-[0.2em]">Detail Portfolio</p>
                   <h3 className="text-white text-base sm:text-xl font-extrabold tracking-tight truncate">
@@ -633,10 +633,10 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-0">
-                <div className="bg-black">
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-0 lg:max-h-[calc(100vh-150px)]">
+                <div className="bg-black min-w-0">
                   <div
-                    className="relative aspect-[16/10] sm:aspect-video min-h-[260px] max-h-[68vh] overflow-hidden"
+                    className="relative h-[52vh] min-h-[280px] max-h-[620px] overflow-hidden"
                     onTouchStart={(event) => {
                       touchStartX.current = event.touches[0]?.clientX ?? null;
                     }}
@@ -708,7 +708,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
                   )}
                 </div>
 
-                <aside className="p-5 sm:p-6 space-y-5 bg-[#0f0f0f] border-t lg:border-t-0 lg:border-l border-white/10">
+                <aside className="p-5 sm:p-6 space-y-5 bg-[#0f0f0f] border-t lg:border-t-0 lg:border-l border-white/10 lg:overflow-y-auto">
                   <div>
                     <h4 className="text-white font-extrabold text-lg tracking-tight mb-2">
                       {selectedProject.public_name || selectedProject.project_name}
