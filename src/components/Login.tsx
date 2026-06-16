@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { motion } from "motion/react";
-import { Lock, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Lock, User as UserIcon } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -73,8 +73,17 @@ export default function Login() {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md p-10 rounded-3xl glass border border-white/10"
+        className="w-full max-w-md"
       >
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Kembali ke Landing Page</span>
+        </a>
+
+        <div className="p-10 rounded-3xl glass border border-white/10">
         <div className="text-center mb-10">
           <h1 className="text-3xl font-display font-bold mb-2">Admin Login</h1>
           <p className="text-text-secondary">Akses Terbatas - Simpluse Web Project</p>
@@ -134,6 +143,7 @@ export default function Login() {
             Gunakan Bypass (Hanya jika jaringan bermasalah)
           </button>
         )}
+        </div>
       </motion.div>
     </div>
   );

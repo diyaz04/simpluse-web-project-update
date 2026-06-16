@@ -1,36 +1,43 @@
-<<<<<<< HEAD
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
-=======
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
->>>>>>> c13a4f057412919f64019d17e2c47ad1cecf9719
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-<<<<<<< HEAD
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-red: #ff2d55;
+  --color-brand-orange: #ff7a00;
+  --color-brand-yellow: #ffc300;
   --color-brand-orange-50: #fff7ed;
   --color-brand-orange-100: #ffedd5;
   --color-brand-orange-500: #f97316;
   --color-brand-orange-600: #ea580c;
   --color-brand-orange-700: #c2410c;
-  
+
+  --color-bg-dark: #020617;
+  --color-card-dark: #1e293b;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #94a3b8;
   --color-dark-900: #0a0a0a;
   --color-dark-800: #121212;
   --color-dark-700: #1a1a1a;
   --color-dark-600: #262626;
 }
 
-/* Custom gorgeous background styles and animations */
-body {
-  background-color: #050505;
-  color: #f5f5f5;
-  font-family: var(--font-sans);
-  overflow-x: hidden;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #020617;
+    color: #f8fafc;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
 }
 
-/* Custom animations for the Immersive UI theme */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -44,12 +51,21 @@ body {
 
 @keyframes pulse-glow {
   0%, 100% {
-    opacity: 0.12;
+    opacity: 0.72;
     transform: scale(1);
   }
   50% {
-    opacity: 0.18;
-    transform: scale(1.05);
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes hero-ember-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -12px, 0) scale(1.05);
   }
 }
 
@@ -58,77 +74,64 @@ body {
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 6s ease-in-out infinite;
+  animation: pulse-glow 7s ease-in-out infinite;
 }
 
-/* Immersive glass card & neon styling utilities */
-.immersive-glow-orange {
-  box-shadow: 0 0 25px -3px rgba(249, 115, 22, 0.25);
+.hero-orange-aura {
+  position: absolute;
+  inset: -12% -16% -8%;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.immersive-glow-amber {
-  box-shadow: 0 0 25px -3px rgba(252, 211, 77, 0.15);
-}
-
-.immersive-glass {
-  background: rgba(17, 17, 17, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.immersive-glass-hover {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.immersive-glass-hover:hover {
-  background: rgba(23, 23, 23, 0.85);
-  border-color: rgba(249, 115, 22, 0.25);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(249, 115, 22, 0.05);
-}
-
-/* Scrollbar customization */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #050505;
-}
-::-webkit-scrollbar-thumb {
-  background: #222;
+.hero-orange-aura::before,
+.hero-orange-aura::after {
+  content: "";
+  position: absolute;
   border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #f97316;
-}
-
-=======
-  --font-display: "Poppins", sans-serif;
-
-  --color-brand-red: #ff2d55;
-  --color-brand-orange: #ff7a00;
-  --color-brand-yellow: #ffc300;
-  
-  --color-bg-dark: #020617;
-  --color-card-dark: #1e293b;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
+  filter: blur(92px);
+  opacity: 0.75;
+  mix-blend-mode: screen;
+  animation: hero-ember-drift 10s ease-in-out infinite;
 }
 
-@layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-  body {
-    @apply bg-bg-dark text-text-primary font-sans antialiased;
-  }
+.hero-orange-aura::before {
+  width: min(46vw, 680px);
+  height: min(46vw, 680px);
+  left: -16%;
+  top: 12%;
+  background:
+    radial-gradient(circle at 42% 45%, rgba(255, 122, 0, 0.35), rgba(255, 45, 85, 0.14) 42%, transparent 72%);
+}
+
+.hero-orange-aura::after {
+  width: min(42vw, 620px);
+  height: min(42vw, 620px);
+  right: -13%;
+  top: 10%;
+  background:
+    radial-gradient(circle at 55% 42%, rgba(255, 195, 0, 0.22), rgba(255, 122, 0, 0.16) 45%, transparent 74%);
+  animation-delay: -4s;
+}
+
+.hero-center-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 122, 0, 0.1), transparent 26%),
+    radial-gradient(circle at 50% 50%, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.74) 68%, rgba(2, 6, 23, 0.95) 100%);
 }
 
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-linear-to-br from-brand-red via-brand-orange to-brand-yellow;
+  background: linear-gradient(135deg, #ff2d55, #ff7a00, #ffc300);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .gradient-bg {
-  @apply bg-linear-to-br from-brand-red via-brand-orange to-brand-yellow;
+  background: linear-gradient(135deg, #ff2d55, #ff7a00, #ffc300);
 }
 
 .gradient-border {
@@ -153,6 +156,49 @@ body {
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
 }
->>>>>>> c13a4f057412919f64019d17e2c47ad1cecf9719
+
+.immersive-glow-orange {
+  box-shadow: 0 0 25px -3px rgba(249, 115, 22, 0.25);
+}
+
+.immersive-glow-amber {
+  box-shadow: 0 0 25px -3px rgba(252, 211, 77, 0.15);
+}
+
+.immersive-glass {
+  background: rgba(17, 17, 17, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.immersive-glass-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.immersive-glass-hover:hover {
+  background: rgba(23, 23, 23, 0.85);
+  border-color: rgba(249, 115, 22, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(249, 115, 22, 0.05);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}

@@ -1,144 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import DashboardLayout from './components/DashboardLayout';
-
-// Public Pages
-import LandingPage from './pages/LandingPage';
-import PortfolioPage from './pages/PortfolioPage';
-import OrderPage from './pages/OrderPage';
-import LoginPage from './pages/LoginPage';
-
-// Private Dashboard Pages
-import DashboardHome from './pages/DashboardHome';
-import ProjectsList from './pages/ProjectsList';
-import ProjectEdit from './pages/ProjectEdit';
-
-import { db } from './lib/db';
-
-export default function App() {
-  const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#/');
-
-  // Sync hash routing triggers
-  useEffect(() => {
-    const handleHashChange = () => {
-      // Force scroll to top on every route change for beautiful UX
-      window.scrollTo(0, 0);
-      setCurrentRoute(window.location.hash || '#/');
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  const handleNavigate = (route: string) => {
-    window.location.hash = route;
-    setCurrentRoute(route);
-  };
-
-  // Auth helper
-  const user = db.getCurrentUser();
-
-  // Helper parser for dynamic edit links like `#/dashboard/projects/edit/project-id`
-  const isEditRoute = currentRoute.startsWith('#/dashboard/projects/edit/');
-  const parsedProjectId = isEditRoute ? currentRoute.replace('#/dashboard/projects/edit/', '') : undefined;
-
-  // Render Logic
-  const getRenderPage = () => {
-    // 1. PUBLIC ROUTES
-    if (currentRoute === '' || currentRoute === '#/' || currentRoute === '#') {
-      return (
-        <div className="animate-fadeIn">
-          <Navbar currentRoute={currentRoute} onNavigate={handleNavigate} />
-          <LandingPage onNavigate={handleNavigate} />
-          <Footer onNavigate={handleNavigate} />
-        </div>
-      );
-    }
-    
-    if (currentRoute === '#/portfolio') {
-      return (
-        <div className="animate-fadeIn">
-          <Navbar currentRoute={currentRoute} onNavigate={handleNavigate} />
-          <PortfolioPage onNavigate={handleNavigate} />
-          <Footer onNavigate={handleNavigate} />
-        </div>
-      );
-    }
-
-    if (currentRoute === '#/order') {
-      return (
-        <div className="animate-fadeIn">
-          <Navbar currentRoute={currentRoute} onNavigate={handleNavigate} />
-          <OrderPage onNavigate={handleNavigate} />
-          <Footer onNavigate={handleNavigate} />
-        </div>
-      );
-    }
-
-    // 2. AUTHENTICATION ROUTE
-    if (currentRoute === '#/dashboard/login') {
-      if (user) {
-        // Redirection to console if already authed
-        setTimeout(() => handleNavigate('#/dashboard'), 0);
-        return null;
-      }
-      return <LoginPage onNavigate={handleNavigate} />;
-    }
-
-    // 3. PRIVATE ADMIN DASHBOARD GUARDED PORTALS
-    if (currentRoute.startsWith('#/dashboard')) {
-      if (!user) {
-        // Guarded: force logins
-        return (
-          <div className="pt-12 text-center space-y-4">
-            <p className="text-slate-400 text-sm">Akses ditolak. Mengalihkan Anda ke halaman login admin...</p>
-            {setTimeout(() => handleNavigate('#/dashboard/login'), 800) && null}
-          </div>
-        );
-      }
-
-      // Determine dashboard view
-      let dashboardChild = <DashboardHome onNavigate={handleNavigate} />;
-
-      if (currentRoute === '#/dashboard/projects') {
-        dashboardChild = <ProjectsList onNavigate={handleNavigate} />;
-      } else if (currentRoute === '#/dashboard/projects/new') {
-        dashboardChild = <ProjectEdit onNavigate={handleNavigate} />;
-      } else if (isEditRoute && parsedProjectId) {
-        dashboardChild = <ProjectEdit projectId={parsedProjectId} onNavigate={handleNavigate} />;
-      }
-
-      return (
-        <DashboardLayout currentRoute={currentRoute} onNavigate={handleNavigate}>
-          {dashboardChild}
-        </DashboardLayout>
-      );
-    }
-
-    // 4. FALLBACK 404 ROUTE
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center p-6 space-y-4">
-        <h1 className="text-4xl font-extrabold text-[#F97316] font-mono select-none">404</h1>
-        <h2 className="text-xl font-bold text-white">Halaman Tidak Ditemukan</h2>
-        <p className="text-slate-400 text-xs max-w-xs">Tampaknya terjadi kesalahan pengetikan URL. Kembali ke halaman utama kami.</p>
-        <button
-          onClick={() => handleNavigate('#/')}
-          className="bg-brand-orange-500 text-white text-xs px-4 py-2.5 rounded-lg text-semibold font-sans cursor-pointer"
-        >
-          Ke Halaman Utama
-        </button>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-neutral-950 font-sans tracking-tight antialiased selection:bg-brand-orange-500/30 selection:text-white">
-      {getRenderPage()}
-    </div>
-  );
-}
-=======
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -162,10 +21,12 @@ import { AppProvider, useApp } from "./AppContext";
 function MainContent() {
   const { user, loading } = useApp();
   const urlParams = new URLSearchParams(window.location.search);
-  const isAdminParam = urlParams.get('admin') === 'true';
+  const isAdminParam = urlParams.get("admin") === "true";
   const isLoginPage = window.location.pathname === "/login" || isAdminParam;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   if (isLoginPage) {
     return user ? <Dashboard /> : <Login />;
@@ -197,4 +58,3 @@ export default function App() {
     </AppProvider>
   );
 }
->>>>>>> c13a4f057412919f64019d17e2c47ad1cecf9719

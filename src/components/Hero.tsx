@@ -14,10 +14,13 @@ export default function Hero() {
   const restOfTitle = titleParts.slice(1).join(" ");
 
   return (
-    <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-brand-red/20 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-brand-yellow/20 rounded-full blur-[120px] animate-pulse" />
+    <section id="home" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden bg-bg-dark">
+      {/* Background orange aura inspired by the landing reference. */}
+      <div className="hero-orange-aura" />
+      <div className="hero-center-vignette" />
+      <div className="absolute top-[18%] left-1/2 -translate-x-1/2 w-[920px] h-[920px] rounded-full border border-white/[0.03] pointer-events-none" />
+      <div className="absolute top-[25%] left-1/2 -translate-x-1/2 w-[650px] h-[650px] rounded-full border border-white/[0.035] pointer-events-none" />
+      <div className="absolute bottom-[-180px] left-1/2 -translate-x-1/2 w-[720px] h-[300px] bg-sky-500/10 rounded-full blur-[130px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
         <motion.div
