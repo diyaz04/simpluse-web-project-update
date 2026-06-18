@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { allowMethod, getSupabaseAdmin, numberOrZero } from './_shared';
+import { allowMethod, getJsonBody, getSupabaseAdmin, numberOrZero, sendServerError } from './_shared';
 
 function escapeHtml(value: unknown) {
   return String(value ?? '')
@@ -114,49 +114,54 @@ async function resolveOrderSourceFields(req: any, res: any, client: any, payment
 export default async function handler(req: any, res: any) {
   if (!allowMethod(req, res, 'POST')) return;
 
-  const { client, error } = getSupabaseAdmin();
-  if (!client) {
-    return res.status(503).json({ error });
-  }
+  try {
+    const { client, error } = getSupabaseAdmin();
+    if (!client) {
+      return res.status(503).json({ error });
+    }
 
-  const { full_name, whatsapp, email, website_type, description, budget, deadline } = req.body || {};
-  if (!full_name || !whatsapp || !email || !description) {
-    return res.status(400).json({ error: 'Nama, WhatsApp, email, dan deskripsi wajib diisi.' });
-  }
+    const body = getJsonBody(req);
+    const { full_name, whatsapp, email, website_type, description, budget, deadline } = body;
+    if (!full_name || !whatsapp || !email || !description) {
+      return res.status(400).json({ error: 'Nama, WhatsApp, email, dan deskripsi wajib diisi.' });
+    }
 
-  const paymentFields = await resolveOrderSourceFields(req, res, client, normalizePaymentFields(req.body || {}));
-  if (!paymentFields) return;
+    const paymentFields = await resolveOrderSourceFields(req, res, client, normalizePaymentFields(body));
+    if (!paymentFields) return;
 
-  const { data: savedOrder, error: saveError } = await client
-    .from('orders')
-    .insert([{
-      full_name,
-      whatsapp,
-      email,
-      website_type,
-      description,
-      budget,
-      deadline,
-      status: 'new',
-      ...paymentFields
-    }])
-    .select()
-    .single();
+    const { data: savedOrder, error: saveError } = await client
+      .from('orders')
+      .insert([{
+        full_name,
+        whatsapp,
+        email,
+        website_type,
+        description,
+        budget,
+        deadline,
+        status: 'new',
+        ...paymentFields
+      }])
+      .select()
+      .single();
 
-  if (saveError || !savedOrder) {
-    return res.status(500).json({ error: saveError?.message || 'Order gagal disimpan ke Supabase.' });
-  }
+    if (saveError || !savedOrder) {
+      return res.status(500).json({
+        error: 'Order gagal disimpan ke Supabase.',
+        details: saveError?.message || 'Supabase tidak mengembalikan row order.'
+      });
+    }
 
-  const resendApiKey = process.env.RESEND_API_KEY || '';
-  const ownerEmail = process.env.OWNER_EMAIL || '';
-  const resendSender = process.env.RESEND_FROM_EMAIL || '';
+    const resendApiKey = process.env.RESEND_API_KEY || '';
+    const ownerEmail = process.env.OWNER_EMAIL || '';
+    const resendSender = process.env.RESEND_FROM_EMAIL || '';
 
-  if (resendApiKey && ownerEmail && resendSender) {
-    try {
-      const resend = new Resend(resendApiKey);
-      const whatsappNumber = digitsOnly(whatsapp);
-      const replyText = encodeURIComponent(`Halo ${full_name}, saya dari Simpluse Web Project terkait order website ${website_type}.`);
-      const emailHtml = `
+    if (resendApiKey && ownerEmail && resendSender) {
+      try {
+        const resend = new Resend(resendApiKey);
+        const whatsappNumber = digitsOnly(whatsapp);
+        const replyText = encodeURIComponent(`Halo ${full_name}, saya dari Simpluse Web Project terkait order website ${website_type}.`);
+        const emailHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px; background-color: #FAFAFA;">
           <h2 style="color: #EA580C; margin-top: 0;">Simpluse Web Project - Notifikasi Order Baru</h2>
           <p>Halo Owner, ada pengajuan order pembuatan website baru dari calon klien.</p>
@@ -196,17 +201,20 @@ export default async function handler(req: any, res: any) {
         </div>
       `;
 
-      await resend.emails.send({
-        from: `Simpluse Portal <${resendSender}>`,
-        to: ownerEmail,
-        replyTo: email,
-        subject: `[Order Baru] ${website_type} - ${full_name}`,
-        html: emailHtml
-      });
-    } catch (resendError) {
-      console.error('Resend email sending failed:', resendError);
+        await resend.emails.send({
+          from: `Simpluse Portal <${resendSender}>`,
+          to: ownerEmail,
+          replyTo: email,
+          subject: `[Order Baru] ${website_type} - ${full_name}`,
+          html: emailHtml
+        });
+      } catch (resendError) {
+        console.error('Resend email sending failed:', resendError);
+      }
     }
-  }
 
-  return res.status(200).json(savedOrder);
+    return res.status(200).json(savedOrder);
+  } catch (error) {
+    return sendServerError(res, error, 'Gagal menyimpan order.');
+  }
 }

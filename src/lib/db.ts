@@ -518,8 +518,9 @@ export const db = {
       });
 
       if (!response.ok) {
-        const details = await response.json().catch(() => ({}));
-        throw new Error(details.error || 'Gagal mendaftarkan akun reseller.');
+        const details = await response.json().catch(async () => ({ error: await response.text().catch(() => '') }));
+        const message = [details.error, details.details].filter(Boolean).join(' Detail: ');
+        throw new Error(message || `Gagal mendaftarkan akun reseller. HTTP ${response.status}`);
       }
 
       return await response.json();

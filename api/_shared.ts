@@ -67,3 +67,23 @@ export function allowMethod(req: any, res: any, method: string) {
 
   return true;
 }
+
+export function getJsonBody(req: any) {
+  if (!req.body) return {};
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return req.body;
+}
+
+export function sendServerError(res: any, error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : String(error || fallback);
+  return res.status(500).json({
+    error: fallback,
+    details: message
+  });
+}
