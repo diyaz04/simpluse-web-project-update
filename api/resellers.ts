@@ -1,7 +1,86 @@
-import { allowMethod, getJsonBody, numberOrZero, requireAdminRequest, sendServerError } from './_shared';
+import { createClient } from '@supabase/supabase-js';
+
+function numberOrZero(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function json(res: any, status: number, payload: Record<string, unknown>) {
+  res.status(status).json(payload);
+}
+
+function getJsonBody(req: any) {
+  if (!req.body) return {};
+  if (typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return req.body;
+}
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (!supabaseUrl || !serviceRoleKey || supabaseUrl.includes('placeholder') || serviceRoleKey.includes('placeholder')) {
+    return {
+      client: null,
+      error: 'SUPABASE_URL/VITE_SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi di environment server.'
+    };
+  }
+
+  return {
+    client: createClient(supabaseUrl, serviceRoleKey),
+    error: ''
+  };
+}
+
+async function requireAdminRequest(req: any, res: any) {
+  const { client, error } = getSupabaseAdmin();
+  if (!client) {
+    json(res, 503, { error });
+    return null;
+  }
+
+  const authHeader = String(req.headers.authorization || '');
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!token) {
+    json(res, 401, { error: 'Token login admin tidak ditemukan.' });
+    return null;
+  }
+
+  const { data: authData, error: authError } = await client.auth.getUser(token);
+  if (authError || !authData.user) {
+    json(res, 401, { error: authError?.message || 'Token login admin tidak valid.' });
+    return null;
+  }
+
+  const { data: profile, error: profileError } = await client
+    .from('profiles')
+    .select('role')
+    .eq('id', authData.user.id)
+    .maybeSingle();
+
+  if (profileError || profile?.role !== 'admin') {
+    json(res, 403, { error: profileError?.message || 'Hanya admin utama yang bisa melakukan aksi ini.' });
+    return null;
+  }
+
+  return { client, user: authData.user };
+}
 
 export default async function handler(req: any, res: any) {
-  if (!allowMethod(req, res, 'POST')) return;
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return json(res, 405, { error: `Method ${req.method} tidak didukung.` });
+  }
 
   try {
     const auth = await requireAdminRequest(req, res);
@@ -14,11 +93,11 @@ export default async function handler(req: any, res: any) {
     const status = body.status === 'inactive' ? 'inactive' : 'active';
 
     if (!name || !email || !whatsapp || !password) {
-      return res.status(400).json({ error: 'Nama, email, WhatsApp, dan password awal reseller wajib diisi.' });
+      return json(res, 400, { error: 'Nama, email, WhatsApp, dan password awal reseller wajib diisi.' });
     }
 
     if (String(password).length < 6) {
-      return res.status(400).json({ error: 'Password awal reseller minimal 6 karakter.' });
+      return json(res, 400, { error: 'Password awal reseller minimal 6 karakter.' });
     }
 
     const { data: createdUser, error: createUserError } = await client.auth.admin.createUser({
@@ -33,7 +112,7 @@ export default async function handler(req: any, res: any) {
     });
 
     if (createUserError || !createdUser.user) {
-      return res.status(400).json({ error: createUserError?.message || 'Gagal membuat akun Auth reseller.' });
+      return json(res, 400, { error: createUserError?.message || 'Gagal membuat akun Auth reseller.' });
     }
 
     const resellerUserId = createdUser.user.id;
@@ -49,7 +128,7 @@ export default async function handler(req: any, res: any) {
 
     if (profileError) {
       await client.auth.admin.deleteUser(resellerUserId).catch(() => null);
-      return res.status(500).json({
+      return json(res, 500, {
         error: 'Akun Auth dibuat tapi profile reseller gagal dibuat.',
         details: profileError.message
       });
@@ -71,14 +150,18 @@ export default async function handler(req: any, res: any) {
 
     if (resellerError || !reseller) {
       await client.auth.admin.deleteUser(resellerUserId).catch(() => null);
-      return res.status(500).json({
+      return json(res, 500, {
         error: 'Gagal menyimpan data reseller.',
         details: resellerError?.message || 'Supabase tidak mengembalikan row reseller.'
       });
     }
 
-    return res.status(200).json(reseller);
+    return json(res, 200, reseller);
   } catch (error) {
-    return sendServerError(res, error, 'Gagal mendaftarkan akun reseller.');
+    const message = error instanceof Error ? error.message : String(error || 'Gagal mendaftarkan akun reseller.');
+    return json(res, 500, {
+      error: 'Gagal mendaftarkan akun reseller.',
+      details: message
+    });
   }
 }
