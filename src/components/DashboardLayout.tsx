@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { db } from '../lib/db';
 import { 
   LayoutDashboard, 
@@ -11,7 +11,9 @@ import {
   Server,
   ClipboardList,
   UsersRound,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Menu,
+  X
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -22,13 +24,20 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, currentRoute, onNavigate, role }: DashboardLayoutProps) {
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = db.getCurrentUser();
   const isSupabase = db.isSupabaseConfigured();
   const isDemoMode = db.isDemoMode();
   const activeRole = role || user?.role || 'admin';
   const isReseller = activeRole === 'reseller';
 
+  const handleNavigate = (route: string) => {
+    setIsMobileNavOpen(false);
+    onNavigate(route);
+  };
+
   const handleLogout = () => {
+    setIsMobileNavOpen(false);
     db.logout();
     onNavigate('#/dashboard/login');
   };
@@ -48,11 +57,34 @@ export default function DashboardLayout({ children, currentRoute, onNavigate, ro
 
   return (
     <div id="dashboard-shell" className="min-h-screen bg-[#070707] text-slate-100 flex flex-col md:flex-row font-sans">
+      <button
+        type="button"
+        onClick={() => setIsMobileNavOpen((isOpen) => !isOpen)}
+        aria-label={isMobileNavOpen ? 'Tutup navigasi dashboard' : 'Buka navigasi dashboard'}
+        aria-expanded={isMobileNavOpen}
+        className="fixed left-4 top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#0C0C0C]/95 text-slate-100 shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur md:hidden"
+      >
+        {isMobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </button>
+
+      {isMobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Tutup navigasi dashboard"
+          onClick={() => setIsMobileNavOpen(false)}
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+        />
+      )}
+
       {/* Sidebar navigation */}
-      <aside className="w-full md:w-64 bg-[#0C0C0C] border-r border-white/5 flex flex-col justify-between p-4 shrink-0 md:sticky md:top-0 md:h-screen">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[min(18rem,calc(100vw-2rem))] bg-[#0C0C0C] border-r border-white/5 flex flex-col justify-between p-4 shrink-0 transition-transform duration-300 ease-out md:sticky md:top-0 md:h-screen md:w-64 md:translate-x-0 ${
+          isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div>
           {/* Header */}
-          <div className="flex items-center space-x-2.5 px-3 py-5 border-b border-white/5 mb-6">
+          <div className="flex items-center space-x-2.5 px-3 py-5 border-b border-white/5 mb-6 pl-14 md:pl-3">
             <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.15)] overflow-hidden">
               <img 
                 src="https://lh3.googleusercontent.com/d/1cAk12EZRnreW8c7SOc2V7rJO4M0c3Dq_" 
@@ -79,7 +111,7 @@ export default function DashboardLayout({ children, currentRoute, onNavigate, ro
               return (
                 <button
                   key={item.path}
-                  onClick={() => onNavigate(item.path)}
+                  onClick={() => handleNavigate(item.path)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-full text-[11px] font-bold tracking-widest uppercase transition cursor-pointer border ${
                     isActive 
                       ? 'bg-[#F97316] border-[#F97316] text-black shadow-[0_0_15px_rgba(249,115,22,0.25)] font-extrabold' 
@@ -122,7 +154,7 @@ export default function DashboardLayout({ children, currentRoute, onNavigate, ro
           {/* Navigation Redirects */}
           <div className="space-y-2">
             <button
-              onClick={() => onNavigate('#/')}
+              onClick={() => handleNavigate('#/')}
               className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-slate-400 hover:text-white transition cursor-pointer"
             >
               <Home className="w-3.5 h-3.5 text-[#F97316]" />
@@ -140,7 +172,7 @@ export default function DashboardLayout({ children, currentRoute, onNavigate, ro
       </aside>
 
       {/* Main content body */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 pt-20 sm:p-6 sm:pt-20 md:pt-6 lg:p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           {children}
         </div>
