@@ -1,6 +1,12 @@
 export type ProjectStatus = 'ongoing' | 'done' | 'maintenance' | 'cancelled';
 export type OrderStatus = 'new' | 'contacted' | 'deal' | 'rejected';
 export type WebsiteCategory = 'Landing Page' | 'Company Profile' | 'Sekolah' | 'Toko Online';
+export type AppRole = 'admin' | 'reseller';
+export type ResellerStatus = 'active' | 'inactive';
+export type PaymentScheme = 'one_time' | 'per_user_contract';
+export type CommissionStatus = 'pending' | 'approved' | 'paid' | 'void';
+export type MaintenanceBillingStatus = 'draft' | 'issued' | 'paid' | 'void';
+export type OrderSourceChannel = 'direct' | 'reseller';
 
 export type TechStackCategory = 
   | 'Frontend' 
@@ -24,6 +30,70 @@ export interface ProjectScreenshot {
   caption: string;
 }
 
+export interface UserProfile {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  full_name: string;
+  whatsapp?: string;
+  role: AppRole;
+}
+
+export interface Reseller {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string | null;
+  name: string;
+  email: string;
+  whatsapp: string;
+  commission_rate: number;
+  status: ResellerStatus;
+  notes?: string;
+}
+
+export interface PaymentTerms {
+  payment_scheme: PaymentScheme;
+  deal_price: number;
+  price_per_user?: number;
+  user_count?: number;
+  monthly_amount?: number;
+  support_scope?: string;
+  maintenance_terms?: string;
+}
+
+export interface CommissionRecord {
+  id: string;
+  created_at?: string;
+  reseller_id: string;
+  reseller_name?: string;
+  project_id?: string | null;
+  order_id?: string | null;
+  period_month: string;
+  base_amount: number;
+  commission_rate: number;
+  commission_amount: number;
+  status: CommissionStatus;
+  paid_at?: string | null;
+  notes?: string;
+}
+
+export interface MaintenanceBilling {
+  id: string;
+  created_at?: string;
+  updated_at?: string;
+  project_id: string;
+  project_name?: string;
+  client_name?: string;
+  billing_date: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: MaintenanceBillingStatus;
+  paid_at?: string | null;
+  notes?: string;
+}
+
 export interface Project {
   id: string;
   created_at?: string;
@@ -42,6 +112,20 @@ export interface Project {
   deadline: string; // ISO date YYYY-MM-DD
   total_price: number;
   dp_paid: number;
+  source_order_id?: string | null;
+  source_channel?: OrderSourceChannel;
+  reseller_id?: string | null;
+  reseller_name?: string | null;
+  payment_scheme?: PaymentScheme;
+  deal_price?: number;
+  price_per_user?: number;
+  user_count?: number;
+  monthly_amount?: number;
+  support_scope?: string;
+  maintenance_terms?: string;
+  commission_rate?: number;
+  estimated_commission?: number;
+  commission_status?: CommissionStatus;
   
   // Tech stack stored as dynamic items list
   tech_stack: TechStackItem[];
@@ -66,6 +150,19 @@ export interface Order {
   budget: string;
   deadline: string;
   status: OrderStatus;
+  source_channel?: OrderSourceChannel;
+  submitted_by?: string | null;
+  reseller_id?: string | null;
+  reseller_name?: string | null;
+  payment_scheme?: PaymentScheme;
+  deal_price?: number;
+  price_per_user?: number;
+  user_count?: number;
+  monthly_amount?: number;
+  support_scope?: string;
+  maintenance_terms?: string;
+  commission_rate?: number;
+  estimated_commission?: number;
 }
 
 export interface DatabaseState {

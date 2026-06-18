@@ -6,33 +6,45 @@ import {
   PlusCircle, 
   Home, 
   LogOut, 
-  CloudCheck, 
   AlertTriangle,
   FlameKindling,
-  Server
+  Server,
+  ClipboardList,
+  UsersRound,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   currentRoute: string;
   onNavigate: (route: string) => void;
+  role?: 'admin' | 'reseller';
 }
 
-export default function DashboardLayout({ children, currentRoute, onNavigate }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, currentRoute, onNavigate, role }: DashboardLayoutProps) {
   const user = db.getCurrentUser();
   const isSupabase = db.isSupabaseConfigured();
   const isDemoMode = db.isDemoMode();
+  const activeRole = role || user?.role || 'admin';
+  const isReseller = activeRole === 'reseller';
 
   const handleLogout = () => {
     db.logout();
     onNavigate('#/dashboard/login');
   };
 
-  const navItems = [
-    { label: 'Overview', icon: LayoutDashboard, path: '#/dashboard' },
-    { label: 'Kelola Project', icon: FolderGit2, path: '#/dashboard/projects' },
-    { label: 'Tambah Baru', icon: PlusCircle, path: '#/dashboard/projects/new' },
-  ];
+  const navItems = isReseller
+    ? [
+        { label: 'Overview', icon: LayoutDashboard, path: '#/reseller' },
+        { label: 'Input Order', icon: ClipboardList, path: '#/reseller/orders/new' },
+      ]
+    : [
+        { label: 'Overview', icon: LayoutDashboard, path: '#/dashboard' },
+        { label: 'Kelola Project', icon: FolderGit2, path: '#/dashboard/projects' },
+        { label: 'Reseller', icon: UsersRound, path: '#/dashboard/resellers' },
+        { label: 'Keuangan', icon: FileSpreadsheet, path: '#/dashboard/finance' },
+        { label: 'Tambah Baru', icon: PlusCircle, path: '#/dashboard/projects/new' },
+      ];
 
   return (
     <div id="dashboard-shell" className="min-h-screen bg-[#070707] text-slate-100 flex flex-col md:flex-row font-sans">
@@ -50,8 +62,12 @@ export default function DashboardLayout({ children, currentRoute, onNavigate }: 
               />
             </div>
             <div>
-              <span className="font-extrabold text-white text-sm tracking-tight block">Simpluse Admin</span>
-              <span className="text-[9px] block font-mono text-[#F97316] uppercase tracking-widest leading-none mt-0.5">Console v1.0</span>
+              <span className="font-extrabold text-white text-sm tracking-tight block">
+                {isReseller ? 'Simpluse Reseller' : 'Simpluse Admin'}
+              </span>
+              <span className="text-[9px] block font-mono text-[#F97316] uppercase tracking-widest leading-none mt-0.5">
+                {isReseller ? 'Partner Console' : 'Console v1.0'}
+              </span>
             </div>
           </div>
 
@@ -117,7 +133,7 @@ export default function DashboardLayout({ children, currentRoute, onNavigate }: 
               className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-full transition cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="font-semibold">Log Out Admin</span>
+              <span className="font-semibold">Log Out {isReseller ? 'Reseller' : 'Admin'}</span>
             </button>
           </div>
         </div>

@@ -13,6 +13,10 @@ import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import ProjectsList from './pages/ProjectsList';
 import ProjectEdit from './pages/ProjectEdit';
+import ResellerDashboard from './pages/ResellerDashboard';
+import AdminResellersPage from './pages/AdminResellersPage';
+import ResellerOrderPage from './pages/ResellerOrderPage';
+import AdminFinancePage from './pages/AdminFinancePage';
 
 import { db } from './lib/db';
 
@@ -78,8 +82,8 @@ export default function App() {
     // 2. AUTHENTICATION ROUTE
     if (currentRoute === '#/dashboard/login') {
       if (user) {
-        // Redirection to console if already authed
-        setTimeout(() => handleNavigate('#/dashboard'), 0);
+        // Redirection to the right console if already authed
+        setTimeout(() => handleNavigate(user.role === 'reseller' ? '#/reseller' : '#/dashboard'), 0);
         return null;
       }
       return <LoginPage onNavigate={handleNavigate} />;
@@ -97,6 +101,11 @@ export default function App() {
         );
       }
 
+      if (user.role === 'reseller') {
+        setTimeout(() => handleNavigate('#/reseller'), 0);
+        return null;
+      }
+
       // Determine dashboard view
       let dashboardChild = <DashboardHome onNavigate={handleNavigate} />;
 
@@ -106,16 +115,47 @@ export default function App() {
         dashboardChild = <ProjectEdit onNavigate={handleNavigate} />;
       } else if (isEditRoute && parsedProjectId) {
         dashboardChild = <ProjectEdit projectId={parsedProjectId} onNavigate={handleNavigate} />;
+      } else if (currentRoute === '#/dashboard/resellers') {
+        dashboardChild = <AdminResellersPage />;
+      } else if (currentRoute === '#/dashboard/finance') {
+        dashboardChild = <AdminFinancePage onNavigate={handleNavigate} />;
       }
 
       return (
-        <DashboardLayout currentRoute={currentRoute} onNavigate={handleNavigate}>
+        <DashboardLayout currentRoute={currentRoute} onNavigate={handleNavigate} role="admin">
           {dashboardChild}
         </DashboardLayout>
       );
     }
 
-    // 4. FALLBACK 404 ROUTE
+    // 4. PRIVATE RESELLER DASHBOARD GUARDED PORTAL
+    if (currentRoute.startsWith('#/reseller')) {
+      if (!user) {
+        return (
+          <div className="pt-12 text-center space-y-4">
+            <p className="text-slate-400 text-sm">Akses reseller ditolak. Mengalihkan Anda ke halaman login...</p>
+            {setTimeout(() => handleNavigate('#/dashboard/login'), 800) && null}
+          </div>
+        );
+      }
+
+      if (user.role !== 'reseller') {
+        setTimeout(() => handleNavigate('#/dashboard'), 0);
+        return null;
+      }
+
+      const resellerChild = currentRoute === '#/reseller/orders/new'
+        ? <ResellerOrderPage onNavigate={handleNavigate} />
+        : <ResellerDashboard onNavigate={handleNavigate} />;
+
+      return (
+        <DashboardLayout currentRoute={currentRoute} onNavigate={handleNavigate} role="reseller">
+          {resellerChild}
+        </DashboardLayout>
+      );
+    }
+
+    // 5. FALLBACK 404 ROUTE
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-6 space-y-4">
         <h1 className="text-4xl font-extrabold text-[#F97316] font-mono select-none">404</h1>

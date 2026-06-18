@@ -110,6 +110,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
   const isEditMode = !!projectId;
   const [loading, setLoading] = useState(isEditMode);
   const [isSaving, setIsSaving] = useState(false);
+  const [sourceProject, setSourceProject] = useState<Project | null>(null);
 
   // SECTION 1: Client Info
   const [clientName, setClientName] = useState('');
@@ -168,6 +169,7 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
         try {
           const p = await db.getProjectById(projectId);
           if (p) {
+            setSourceProject(p);
             setClientName(p.client_name || '');
             setClientWa(p.client_wa || '');
             setClientEmail(p.client_email || '');
@@ -543,6 +545,27 @@ export default function ProjectEdit({ projectId, onNavigate }: ProjectEditProps)
               Rp {new Intl.NumberFormat('id-ID').format(totalPrice - dpPaid)}
             </span>
           </div>
+
+          {sourceProject?.reseller_name && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-brand-orange-500/5 rounded-xl border border-brand-orange-500/15">
+              <div>
+                <span className="block text-[10px] font-bold font-mono tracking-wider uppercase text-slate-500 mb-1">Reseller</span>
+                <span className="text-sm font-bold text-white">{sourceProject.reseller_name}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold font-mono tracking-wider uppercase text-slate-500 mb-1">Skema Pembayaran</span>
+                <span className="text-sm font-bold text-brand-orange-400">
+                  {sourceProject.payment_scheme === 'per_user_contract' ? 'Kontrak Per User' : 'Sekali Bayar'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[10px] font-bold font-mono tracking-wider uppercase text-slate-500 mb-1">Estimasi Komisi</span>
+                <span className="text-sm font-bold text-emerald-400 font-mono">
+                  Rp {new Intl.NumberFormat('id-ID').format(Number(sourceProject.estimated_commission || 0))}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Internal notes */}
           <div>

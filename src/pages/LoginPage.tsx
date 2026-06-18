@@ -22,8 +22,8 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
     try {
       const response = await db.login(email, password);
       if (response.success) {
-        // Succesfully logged in! Direct dashboard home view
-        onNavigate('#/dashboard');
+        // Succesfully logged in! Direct to the correct console by role.
+        onNavigate(response.user?.role === 'reseller' ? '#/reseller' : '#/dashboard');
       } else {
         setErrorMsg(response.error || 'Autentikasi gagal. Mohon periksa kembali data Anda.');
       }
@@ -145,6 +145,8 @@ export default function LoginPage({ onNavigate }: LoginPageProps) {
             <div className="bg-white/5 p-3.5 rounded-2xl border border-white/5 inline-block text-left text-[11px] font-mono text-slate-400 space-y-1">
               <p>Email: <span className="text-white">demo@simpluse.local</span></p>
               <p>Sandi: <span className="text-white">demo-admin</span></p>
+              <p className="pt-2 text-slate-500">Reseller: <span className="text-white">reseller@simpluse.local</span></p>
+              <p>Sandi reseller: <span className="text-white">demo-reseller</span></p>
             </div>
           </div>
         )}

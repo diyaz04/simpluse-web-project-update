@@ -201,6 +201,11 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
                             {p.website_category}
                           </span>
                         )}
+                        {p.reseller_name && (
+                          <span className="inline-block mt-1 ml-1 bg-brand-orange-500/10 text-brand-orange-400 border border-brand-orange-500/20 text-[9px] font-mono tracking-wide px-1.5 py-0.5 rounded font-bold uppercase select-none">
+                            Reseller: {p.reseller_name}
+                          </span>
+                        )}
                         {p.is_public ? (
                           <div className="flex items-center space-x-1 sm:space-x-1.5 mt-1">
                             <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[9px] font-mono tracking-wide px-1.5 py-0.5 rounded font-bold uppercase select-none">
@@ -239,6 +244,11 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
                         <div className="font-bold text-white font-mono">{rupiah(p.total_price)}</div>
                         <div className="space-y-0.5 text-[10px] mt-1 font-mono">
                           <p className="text-emerald-400">Bayar (DP): {rupiah(p.dp_paid)}</p>
+                          {p.reseller_name && (
+                            <p className="text-brand-orange-400">
+                              Komisi {Number(p.commission_rate || 0)}%: {rupiah(Number(p.estimated_commission || 0))}
+                            </p>
+                          )}
                           {tagihanSisa > 0 ? (
                             <p className="text-red-400">Kurang: {rupiah(tagihanSisa)}</p>
                           ) : (

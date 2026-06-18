@@ -24,7 +24,26 @@ Production mode expects real Supabase auth and data by default:
 - `VITE_PUBLIC_CONTACT_EMAIL` if you want a public email link in the footer
 - `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` for project screenshot uploads
 
-Create dashboard admins in Supabase Authentication. The app does not accept shared hardcoded admin passwords unless demo mode is explicitly enabled.
+Create dashboard admins in Supabase Authentication, then add their user id to the `profiles` table with `role = 'admin'`. The app does not accept shared hardcoded admin passwords unless demo mode is explicitly enabled.
+
+## Reseller And Order Payment Model
+
+Reseller support is role-based:
+
+- `profiles.role = 'admin'` can manage projects, orders, resellers, and commission records.
+- `profiles.role = 'reseller'` can access its own reseller row, affiliate orders, projects, and commission records.
+- Creating reseller login accounts from the admin dashboard requires `SUPABASE_SERVICE_ROLE_KEY` on the server or Vercel environment. This key must never be exposed as a `VITE_` client variable.
+
+Order/project payment schemes:
+
+- `payment_scheme = 'one_time'`: client pays `deal_price` once. Maintenance after handoff can be recorded separately by admin.
+- `payment_scheme = 'per_user_contract'`: monthly value is `price_per_user * user_count`. Minor changes and error handling are represented through `support_scope` and `maintenance_terms`.
+
+Affiliate commission defaults to a percentage such as `10` and is stored as `commission_rate`; the estimated value is stored in `estimated_commission`. Monthly commission/payment history belongs in `commission_records`, while monthly business totals are exposed through the `monthly_finance_reports` Supabase view.
+
+Admin finance reporting is available at `#/dashboard/finance`. Use it to filter monthly reports, approve reseller commissions, mark commissions as paid, or void invalid commission records. Resellers can see their own monthly commission history from `#/reseller`.
+
+One-time project follow-up work can be billed through `maintenance_billings`, also managed from `#/dashboard/finance`. Use it for post-handoff fixes, minor revisions, or maintenance work that is outside the original one-time deal.
 
 ## Demo Mode
 
