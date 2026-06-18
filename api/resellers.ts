@@ -54,7 +54,16 @@ async function requireAdminRequest(req: any, res: any) {
 
   const { data: authData, error: authError } = await client.auth.getUser(token);
   if (authError || !authData.user) {
-    json(res, 401, { error: authError?.message || 'Token login admin tidak valid.' });
+    const authMessage = authError?.message || 'Token login admin tidak valid.';
+    const isProjectMismatch = /invalid JWT|unrecognized JWT kid|verify signature|kid/i.test(authMessage);
+    json(res, 401, {
+      error: isProjectMismatch
+        ? 'Token login admin tidak cocok dengan Supabase server.'
+        : authMessage,
+      details: isProjectMismatch
+        ? 'Samakan VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_URL, dan SUPABASE_SERVICE_ROLE_KEY dari project Supabase yang sama, lalu logout-login ulang.'
+        : undefined
+    });
     return null;
   }
 
