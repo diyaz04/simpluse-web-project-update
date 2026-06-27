@@ -427,41 +427,50 @@ DROP POLICY IF EXISTS "Admins can manage orders" ON public.orders;
 DROP POLICY IF EXISTS "Resellers can read own orders" ON public.orders;
 DROP POLICY IF EXISTS "Resellers can submit own orders" ON public.orders;
 DROP POLICY IF EXISTS "Resellers can update own active orders" ON public.orders;
+DROP POLICY IF EXISTS "Resellers can delete own active orders" ON public.orders;
 DROP POLICY IF EXISTS "Admins can manage commission records" ON public.commission_records;
 DROP POLICY IF EXISTS "Resellers can read own commission records" ON public.commission_records;
 DROP POLICY IF EXISTS "Admins can manage maintenance billings" ON public.maintenance_billings;
 
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
 CREATE POLICY "Users can read own profile"
 ON public.profiles FOR SELECT TO authenticated
 USING (id = auth.uid());
 
+DROP POLICY IF EXISTS "Admins can manage profiles" ON public.profiles;
 CREATE POLICY "Admins can manage profiles"
 ON public.profiles FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')
 WITH CHECK (public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Admins can manage resellers" ON public.resellers;
 CREATE POLICY "Admins can manage resellers"
 ON public.resellers FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')
 WITH CHECK (public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Resellers can read own reseller row" ON public.resellers;
 CREATE POLICY "Resellers can read own reseller row"
 ON public.resellers FOR SELECT TO authenticated
 USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Public projects are readable" ON public.projects;
 CREATE POLICY "Public projects are readable"
 ON public.projects FOR SELECT
 USING (is_public = true OR public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Admins can manage projects" ON public.projects;
 CREATE POLICY "Admins can manage projects"
 ON public.projects FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')
 WITH CHECK (public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Resellers can read own projects" ON public.projects;
 CREATE POLICY "Resellers can read own projects"
 ON public.projects FOR SELECT TO authenticated
 USING (reseller_id = public.current_reseller_id());
 
+DROP POLICY IF EXISTS "Public visitors can submit direct orders" ON public.orders;
 CREATE POLICY "Public visitors can submit direct orders"
 ON public.orders FOR INSERT TO anon
 WITH CHECK (
@@ -470,15 +479,18 @@ WITH CHECK (
   AND submitted_by IS NULL
 );
 
+DROP POLICY IF EXISTS "Admins can manage orders" ON public.orders;
 CREATE POLICY "Admins can manage orders"
 ON public.orders FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')
 WITH CHECK (public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Resellers can read own orders" ON public.orders;
 CREATE POLICY "Resellers can read own orders"
 ON public.orders FOR SELECT TO authenticated
 USING (reseller_id = public.current_reseller_id());
 
+DROP POLICY IF EXISTS "Resellers can submit own orders" ON public.orders;
 CREATE POLICY "Resellers can submit own orders"
 ON public.orders FOR INSERT TO authenticated
 WITH CHECK (
@@ -487,6 +499,7 @@ WITH CHECK (
   AND source_channel = 'reseller'
 );
 
+DROP POLICY IF EXISTS "Resellers can update own active orders" ON public.orders;
 CREATE POLICY "Resellers can update own active orders"
 ON public.orders FOR UPDATE TO authenticated
 USING (
@@ -498,15 +511,28 @@ WITH CHECK (
   AND source_channel = 'reseller'
 );
 
+DROP POLICY IF EXISTS "Resellers can delete own active orders" ON public.orders;
+CREATE POLICY "Resellers can delete own active orders"
+ON public.orders FOR DELETE TO authenticated
+USING (
+  public.current_user_role() = 'reseller'
+  AND reseller_id = public.current_reseller_id()
+  AND source_channel = 'reseller'
+  AND status IN ('new', 'contacted')
+);
+
+DROP POLICY IF EXISTS "Admins can manage commission records" ON public.commission_records;
 CREATE POLICY "Admins can manage commission records"
 ON public.commission_records FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')
 WITH CHECK (public.current_user_role() = 'admin');
 
+DROP POLICY IF EXISTS "Resellers can read own commission records" ON public.commission_records;
 CREATE POLICY "Resellers can read own commission records"
 ON public.commission_records FOR SELECT TO authenticated
 USING (reseller_id = public.current_reseller_id());
 
+DROP POLICY IF EXISTS "Admins can manage maintenance billings" ON public.maintenance_billings;
 CREATE POLICY "Admins can manage maintenance billings"
 ON public.maintenance_billings FOR ALL TO authenticated
 USING (public.current_user_role() = 'admin')

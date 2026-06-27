@@ -8,9 +8,11 @@ import {
   CheckCircle2,
   ClipboardList,
   CircleDollarSign,
+  Edit3,
   FileSpreadsheet,
   Hourglass,
   PlusCircle,
+  Trash2,
   UserRoundCheck
 } from 'lucide-react';
 
@@ -25,6 +27,8 @@ export default function ResellerDashboard({ onNavigate }: ResellerDashboardProps
   const [projects, setProjects] = useState<Project[]>([]);
   const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionMsg, setActionMsg] = useState('');
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadResellerData() {
@@ -94,6 +98,30 @@ export default function ResellerDashboard({ onNavigate }: ResellerDashboardProps
     return 'bg-amber-500/15 text-amber-400';
   };
 
+  const canManageOrder = (order: Order) => ['new', 'contacted'].includes(order.status);
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!canManageOrder(order)) {
+      setActionMsg('Order yang sudah diproses admin tidak bisa dihapus reseller.');
+      return;
+    }
+
+    if (!window.confirm(`Hapus order afiliasi "${order.full_name}"?`)) return;
+
+    try {
+      setActionMsg('');
+      setDeletingOrderId(order.id);
+      await db.deleteOrder(order.id);
+      setOrders((current) => current.filter((item) => item.id !== order.id));
+      setActionMsg('Order afiliasi berhasil dihapus.');
+    } catch (err: any) {
+      console.error('Failed to delete reseller order:', err);
+      setActionMsg(err?.message || 'Gagal menghapus order afiliasi.');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-24 text-center">
@@ -128,6 +156,12 @@ export default function ResellerDashboard({ onNavigate }: ResellerDashboardProps
       {!reseller && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-2xl p-5 text-xs leading-relaxed">
           Data reseller belum terhubung ke akun ini. Minta admin utama mengisi `user_id` pada tabel resellers.
+        </div>
+      )}
+
+      {actionMsg && (
+        <div className="bg-dark-900 border border-dark-600 text-slate-300 rounded-2xl p-4 text-xs font-semibold">
+          {actionMsg}
         </div>
       )}
 
@@ -189,23 +223,48 @@ export default function ResellerDashboard({ onNavigate }: ResellerDashboardProps
             </div>
           ) : (
             <div className="divide-y divide-dark-650/50">
-              {orders.slice(0, 5).map((order) => (
-                <div key={order.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-dark-850/40 transition">
-                  <div>
-                    <p className="text-sm font-bold text-white">{order.full_name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{order.website_type}</p>
-                    <p className="text-[10px] text-slate-500 mt-1 font-mono">{order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : 'Baru'}</p>
+              {orders.slice(0, 5).map((order) => {
+                const manageable = canManageOrder(order);
+                return (
+                  <div key={order.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-dark-850/40 transition">
+                    <div>
+                      <p className="text-sm font-bold text-white">{order.full_name}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{order.website_type}</p>
+                      <p className="text-[10px] text-slate-500 mt-1 font-mono">{order.created_at ? new Date(order.created_at).toLocaleDateString('id-ID') : 'Baru'}</p>
+                    </div>
+                    <div className="flex items-center md:justify-end gap-2">
+                      <div className="text-left md:text-right">
+                        <span className="inline-block px-2.5 py-1 rounded-full bg-brand-orange-500/10 text-brand-orange-400 text-[10px] font-bold uppercase">
+                          {order.status}
+                        </span>
+                        <p className="text-[10px] text-slate-500 mt-1 font-mono">
+                          Est. komisi {rupiah(Number(order.estimated_commission || 0))}
+                        </p>
+                      </div>
+                      <div className="inline-flex items-center gap-1 bg-dark-900 border border-dark-600 p-1 rounded-lg">
+                        <button
+                          type="button"
+                          disabled={!manageable}
+                          onClick={() => onNavigate(`#/reseller/orders/edit/${order.id}`)}
+                          title={manageable ? 'Edit Order' : 'Order sudah diproses admin'}
+                          className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-dark-800 disabled:text-slate-700 disabled:cursor-not-allowed cursor-pointer transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!manageable || deletingOrderId === order.id}
+                          onClick={() => handleDeleteOrder(order)}
+                          title={manageable ? 'Hapus Order' : 'Order sudah diproses admin'}
+                          className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-red-500/10 disabled:text-slate-700 disabled:cursor-not-allowed cursor-pointer transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-left md:text-right">
-                    <span className="inline-block px-2.5 py-1 rounded-full bg-brand-orange-500/10 text-brand-orange-400 text-[10px] font-bold uppercase">
-                      {order.status}
-                    </span>
-                    <p className="text-[10px] text-slate-500 mt-1 font-mono">
-                      Est. komisi {rupiah(Number(order.estimated_commission || 0))}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

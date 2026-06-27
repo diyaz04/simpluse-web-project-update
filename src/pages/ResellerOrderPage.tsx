@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db } from '../lib/db';
-import { PaymentScheme, Reseller } from '../types';
+import { Order, PaymentScheme, Reseller } from '../types';
 import {
   ArrowLeft,
   BadgePercent,
@@ -12,12 +12,15 @@ import {
 } from 'lucide-react';
 
 interface ResellerOrderPageProps {
+  orderId?: string;
   onNavigate: (route: string) => void;
 }
 
-export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps) {
+export default function ResellerOrderPage({ orderId, onNavigate }: ResellerOrderPageProps) {
+  const isEditMode = Boolean(orderId);
   const currentUser = db.getCurrentUser();
   const [reseller, setReseller] = useState<Reseller | null>(null);
+  const [sourceOrder, setSourceOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -57,9 +60,38 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
     async function loadReseller() {
       try {
         setLoading(true);
-        const resellers = await db.getResellers();
+        const [resellers, orders] = await Promise.all([
+          db.getResellers(),
+          orderId ? db.getOrders() : Promise.resolve([] as Order[])
+        ]);
         const ownReseller = resellers.find((item) => item.id === currentUser?.reseller_id || item.user_id === currentUser?.id) || null;
         setReseller(ownReseller);
+
+        if (orderId) {
+          const editableOrder = orders.find((item) => item.id === orderId && (item.reseller_id === ownReseller?.id || item.reseller_id === currentUser?.reseller_id)) || null;
+          if (!editableOrder) {
+            setErrorMsg('Order afiliasi tidak ditemukan atau bukan milik akun reseller ini.');
+            return;
+          }
+
+          setSourceOrder(editableOrder);
+          setFullName(editableOrder.full_name || '');
+          setWhatsapp(editableOrder.whatsapp || '');
+          setEmail(editableOrder.email || '');
+          setWebsiteType(editableOrder.website_type || 'Company Profile');
+          setDescription(editableOrder.description || '');
+          setDeadline(editableOrder.deadline || '30 Hari');
+          setPaymentScheme(editableOrder.payment_scheme || 'one_time');
+          setDealPrice(Number(editableOrder.deal_price || 0));
+          setPricePerUser(Number(editableOrder.price_per_user || 0));
+          setUserCount(Number(editableOrder.user_count || 0));
+          setSupportScope(editableOrder.support_scope || 'Bug fixing dan perubahan minor selama kontrak aktif.');
+          setMaintenanceTerms(editableOrder.maintenance_terms || 'Jika sekali bayar, maintenance/perubahan lanjutan dihitung sebagai biaya tambahan sesuai keputusan admin.');
+
+          if (!['new', 'contacted'].includes(editableOrder.status)) {
+            setErrorMsg('Order ini sudah diproses admin, jadi tidak bisa diedit lagi.');
+          }
+        }
       } catch (err: any) {
         console.error('Failed to load reseller order context:', err);
         setErrorMsg(err?.message || 'Gagal memuat data reseller.');
@@ -69,7 +101,7 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
     }
 
     loadReseller();
-  }, [currentUser?.id, currentUser?.reseller_id]);
+  }, [currentUser?.id, currentUser?.reseller_id, orderId]);
 
   const monthlyAmount = useMemo(() => {
     return paymentScheme === 'per_user_contract' ? pricePerUser * userCount : 0;
@@ -78,6 +110,7 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
   const commissionBase = paymentScheme === 'per_user_contract' ? monthlyAmount : dealPrice;
   const commissionRate = Number(reseller?.commission_rate || 0);
   const estimatedCommission = Math.round(commissionBase * commissionRate) / 100;
+  const canEditOrder = !isEditMode || ['new', 'contacted'].includes(sourceOrder?.status || 'new');
 
   const rupiah = (num: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -101,10 +134,16 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
       return;
     }
 
+    if (!canEditOrder) {
+      setErrorMsg('Order ini sudah diproses admin, jadi tidak bisa diedit lagi.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       await db.saveOrder({
+        ...(isEditMode ? { id: orderId } : {}),
         full_name: fullName,
         whatsapp,
         email,
@@ -114,7 +153,7 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
           ? `${rupiah(pricePerUser)} x ${userCount} user = ${rupiah(monthlyAmount)} / bulan`
           : rupiah(dealPrice),
         deadline,
-        status: 'new',
+        status: sourceOrder?.status || 'new',
         source_channel: 'reseller',
         submitted_by: currentUser?.id || null,
         reseller_id: reseller.id,
@@ -163,16 +202,20 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <span className="text-brand-orange-500 font-mono text-xs font-bold uppercase tracking-wider block">Affiliate Order</span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Input Order Afiliasi</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            {isEditMode ? 'Edit Order Afiliasi' : 'Input Order Afiliasi'}
+          </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-            Masukkan lead klien dari jaringanmu. Estimasi komisi dihitung otomatis dari rate reseller.
+            {isEditMode
+              ? 'Perbarui data lead selama order belum dikunci oleh admin.'
+              : 'Masukkan lead klien dari jaringanmu. Estimasi komisi dihitung otomatis dari rate reseller.'}
           </p>
         </div>
       </div>
 
       {(errorMsg || success) && (
         <div className={`border rounded-lg p-4 text-xs font-semibold ${errorMsg ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'}`}>
-          {errorMsg || 'Order afiliasi berhasil dikirim ke admin.'}
+          {errorMsg || (isEditMode ? 'Order afiliasi berhasil diperbarui.' : 'Order afiliasi berhasil dikirim ke admin.')}
         </div>
       )}
 
@@ -357,15 +400,15 @@ export default function ResellerOrderPage({ onNavigate }: ResellerOrderPageProps
             <div className="pt-2 flex justify-end">
               <button
                 type="submit"
-                disabled={isSubmitting || !reseller}
+                disabled={isSubmitting || !reseller || !canEditOrder}
                 className="bg-brand-orange-600 hover:bg-brand-orange-700 disabled:bg-dark-700 disabled:text-slate-500 text-black font-extrabold text-xs px-5 py-2.5 rounded-full cursor-pointer inline-flex items-center space-x-2"
               >
                 {isSubmitting ? (
-                  <span>Mengirim Order...</span>
+                  <span>{isEditMode ? 'Menyimpan Order...' : 'Mengirim Order...'}</span>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Kirim ke Admin</span>
+                    <span>{isEditMode ? 'Simpan Perubahan' : 'Kirim ke Admin'}</span>
                   </>
                 )}
               </button>

@@ -706,6 +706,16 @@ export const db = {
   async saveOrder(order: Partial<Order>): Promise<Order> {
     if (isDemoMode) {
       const orders = getDemoOrders();
+      if (order.id) {
+        const index = orders.findIndex((item) => item.id === order.id);
+        if (index !== -1) {
+          const updated = { ...orders[index], ...order } as Order;
+          orders[index] = updated;
+          setDemoOrders(orders);
+          return updated;
+        }
+      }
+
       const newOrder = makeLocalOrder(order);
       orders.unshift(newOrder);
       setDemoOrders(orders);
@@ -739,17 +749,28 @@ export const db = {
         estimated_commission: Number(order.estimated_commission) || 0
       };
 
-      const { data, error } = await client
-        .from('orders')
-        .insert([payload])
-        .select()
-        .single();
+      const query = order.id
+        ? client
+            .from('orders')
+            .update(payload)
+            .eq('id', order.id)
+            .eq('reseller_id', payload.reseller_id)
+            .in('status', ['new', 'contacted'])
+        : client
+            .from('orders')
+            .insert([payload]);
+
+      const { data, error } = await query.select().single();
 
       if (!error && data) {
         return data as Order;
       }
 
       const message = error?.message || 'Gagal menyimpan order afiliasi langsung ke Supabase.';
+      if (order.id) {
+        throw new Error(`${message} Order hanya bisa diedit saat status masih new/contacted dan milik reseller yang sedang login.`);
+      }
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {

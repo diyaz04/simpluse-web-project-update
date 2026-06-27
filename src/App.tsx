@@ -45,6 +45,8 @@ export default function App() {
   // Helper parser for dynamic edit links like `#/dashboard/projects/edit/<project-id>`
   const isEditRoute = currentRoute.startsWith('#/dashboard/projects/edit/');
   const parsedProjectId = isEditRoute ? currentRoute.replace('#/dashboard/projects/edit/', '') : undefined;
+  const isResellerOrderEditRoute = currentRoute.startsWith('#/reseller/orders/edit/');
+  const parsedResellerOrderId = isResellerOrderEditRoute ? currentRoute.replace('#/reseller/orders/edit/', '') : undefined;
 
   // Render Logic
   const getRenderPage = () => {
@@ -146,6 +148,8 @@ export default function App() {
 
       const resellerChild = currentRoute === '#/reseller/orders/new'
         ? <ResellerOrderPage onNavigate={handleNavigate} />
+        : isResellerOrderEditRoute && parsedResellerOrderId
+        ? <ResellerOrderPage orderId={parsedResellerOrderId} onNavigate={handleNavigate} />
         : <ResellerDashboard onNavigate={handleNavigate} />;
 
       return (
