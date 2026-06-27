@@ -111,6 +111,42 @@ async function resolveOrderSourceFields(req: any, res: any, client: any, payment
   };
 }
 
+function isSchemaInsertError(error: any) {
+  const text = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`;
+  return /PGRST204|schema cache|column .* does not exist|Could not find .* column|column .* of relation .* does not exist/i.test(text);
+}
+
+function buildLegacyOrderDescription(description: string, paymentFields: ReturnType<typeof normalizePaymentFields>) {
+  if (paymentFields.source_channel !== 'reseller') return description;
+
+  return [
+    description,
+    '',
+    '--- Metadata Order Afiliasi ---',
+    `Reseller: ${paymentFields.reseller_name || '-'}`,
+    `Reseller ID: ${paymentFields.reseller_id || '-'}`,
+    `Submitted By: ${paymentFields.submitted_by || '-'}`,
+    `Skema: ${paymentFields.payment_scheme === 'per_user_contract' ? 'Kontrak per user / bulan' : 'Sekali bayar'}`,
+    `Deal Price: ${paymentFields.deal_price}`,
+    `Harga Per User: ${paymentFields.price_per_user}`,
+    `Jumlah User: ${paymentFields.user_count}`,
+    `Monthly Amount: ${paymentFields.monthly_amount}`,
+    `Rate Komisi: ${paymentFields.commission_rate}%`,
+    `Estimasi Komisi: ${paymentFields.estimated_commission}`,
+    paymentFields.support_scope ? `Support Scope: ${paymentFields.support_scope}` : '',
+    paymentFields.maintenance_terms ? `Maintenance Terms: ${paymentFields.maintenance_terms}` : ''
+  ].filter(Boolean).join('\n');
+}
+
+function buildLegacyOrderBudget(budget: string, paymentFields: ReturnType<typeof normalizePaymentFields>) {
+  if (paymentFields.source_channel !== 'reseller') return budget;
+  return [
+    budget || '-',
+    `Affiliate ${paymentFields.reseller_name || '-'}`,
+    `Komisi ${paymentFields.commission_rate}% = ${paymentFields.estimated_commission}`
+  ].join(' | ');
+}
+
 export default async function handler(req: any, res: any) {
   if (!allowMethod(req, res, 'POST')) return;
 
@@ -129,21 +165,46 @@ export default async function handler(req: any, res: any) {
     const paymentFields = await resolveOrderSourceFields(req, res, client, normalizePaymentFields(body));
     if (!paymentFields) return;
 
-    const { data: savedOrder, error: saveError } = await client
+    const fullOrderPayload = {
+      full_name,
+      whatsapp,
+      email,
+      website_type,
+      description,
+      budget,
+      deadline,
+      status: 'new',
+      ...paymentFields
+    };
+
+    let { data: savedOrder, error: saveError } = await client
       .from('orders')
-      .insert([{
+      .insert([fullOrderPayload])
+      .select()
+      .single();
+
+    if (saveError && isSchemaInsertError(saveError)) {
+      console.warn('Supabase order insert used legacy fallback because schema columns are missing:', saveError);
+      const legacyOrderPayload = {
         full_name,
         whatsapp,
         email,
         website_type,
-        description,
-        budget,
+        description: buildLegacyOrderDescription(description, paymentFields),
+        budget: buildLegacyOrderBudget(budget, paymentFields),
         deadline,
-        status: 'new',
-        ...paymentFields
-      }])
-      .select()
-      .single();
+        status: 'new'
+      };
+
+      const fallbackResult = await client
+        .from('orders')
+        .insert([legacyOrderPayload])
+        .select()
+        .single();
+
+      savedOrder = fallbackResult.data;
+      saveError = fallbackResult.error;
+    }
 
     if (saveError || !savedOrder) {
       return res.status(500).json({

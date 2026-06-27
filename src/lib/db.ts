@@ -725,7 +725,13 @@ export const db = {
     });
 
     if (!response.ok) {
-      const details = await response.json().catch(() => ({}));
+      const rawError = await response.text().catch(() => '');
+      let details: { error?: string; details?: string } = {};
+      try {
+        details = rawError ? JSON.parse(rawError) : {};
+      } catch {
+        details = { error: rawError };
+      }
       const message = [details.error, details.details].filter(Boolean).join(' Detail: ');
       throw new Error(message || `Gagal mengirim order ke server. HTTP ${response.status}`);
     }
