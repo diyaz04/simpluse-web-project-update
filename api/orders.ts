@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import { allowMethod, getJsonBody, getSupabaseAdmin, numberOrZero, sendServerError } from './_shared';
 
 function escapeHtml(value: unknown) {
@@ -147,6 +146,71 @@ function buildLegacyOrderBudget(budget: string, paymentFields: ReturnType<typeof
   ].join(' | ');
 }
 
+async function sendOwnerNotification(params: {
+  resendApiKey: string;
+  ownerEmail: string;
+  resendSender: string;
+  full_name: string;
+  whatsapp: string;
+  email: string;
+  website_type: string;
+  budget: string;
+  deadline: string;
+  description: string;
+}) {
+  const { Resend } = await import('resend');
+  const resend = new Resend(params.resendApiKey);
+  const whatsappNumber = digitsOnly(params.whatsapp);
+  const replyText = encodeURIComponent(`Halo ${params.full_name}, saya dari Simpluse Web Project terkait order website ${params.website_type}.`);
+  const emailHtml = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px; background-color: #FAFAFA;">
+      <h2 style="color: #EA580C; margin-top: 0;">Simpluse Web Project - Notifikasi Order Baru</h2>
+      <p>Halo Owner, ada pengajuan order pembuatan website baru dari calon klien.</p>
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr style="background-color: #F3F4F6;">
+          <td style="padding: 10px; font-weight: bold; width: 180px; border: 1px solid #E5E7EB;">Nama Lengkap</td>
+          <td style="padding: 10px; border: 1px solid #E5E7EB;">${escapeHtml(params.full_name)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">No. WhatsApp</td>
+          <td style="padding: 10px; border: 1px solid #E5E7EB;"><a href="https://wa.me/${whatsappNumber}" style="color: #ea580c; text-decoration: none; font-weight: 500;">${escapeHtml(params.whatsapp)}</a></td>
+        </tr>
+        <tr style="background-color: #F3F4F6;">
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Email</td>
+          <td style="padding: 10px; border: 1px solid #E5E7EB;"><a href="mailto:${escapeHtml(params.email)}" style="color: #ea580c; text-decoration: none;">${escapeHtml(params.email)}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Jenis Website</td>
+          <td style="padding: 10px; font-weight: bold; color: #111827; border: 1px solid #E5E7EB;">${escapeHtml(params.website_type)}</td>
+        </tr>
+        <tr style="background-color: #F3F4F6;">
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Estimasi Budget</td>
+          <td style="padding: 10px; color: #047857; font-weight: 600; border: 1px solid #E5E7EB;">${escapeHtml(params.budget)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Deadline</td>
+          <td style="padding: 10px; border: 1px solid #E5E7EB;">${escapeHtml(params.deadline)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB; vertical-align: top;">Kebutuhan & Deskripsi</td>
+          <td style="padding: 10px; border: 1px solid #E5E7EB; white-space: pre-wrap;">${escapeHtml(params.description)}</td>
+        </tr>
+      </table>
+      <div style="text-align: center; margin-top: 25px;">
+        <a href="https://wa.me/${whatsappNumber}?text=${replyText}" style="background-color: #EA580C; color: #FFFFFF; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Hubungi via WhatsApp</a>
+      </div>
+    </div>
+  `;
+
+  await resend.emails.send({
+    from: `Simpluse Portal <${params.resendSender}>`,
+    to: params.ownerEmail,
+    replyTo: params.email,
+    subject: `[Order Baru] ${params.website_type} - ${params.full_name}`,
+    html: emailHtml
+  });
+}
+
 export default async function handler(req: any, res: any) {
   if (!allowMethod(req, res, 'POST')) return;
 
@@ -218,60 +282,20 @@ export default async function handler(req: any, res: any) {
     const resendSender = process.env.RESEND_FROM_EMAIL || '';
 
     if (resendApiKey && ownerEmail && resendSender) {
-      try {
-        const resend = new Resend(resendApiKey);
-        const whatsappNumber = digitsOnly(whatsapp);
-        const replyText = encodeURIComponent(`Halo ${full_name}, saya dari Simpluse Web Project terkait order website ${website_type}.`);
-        const emailHtml = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px; background-color: #FAFAFA;">
-          <h2 style="color: #EA580C; margin-top: 0;">Simpluse Web Project - Notifikasi Order Baru</h2>
-          <p>Halo Owner, ada pengajuan order pembuatan website baru dari calon klien.</p>
-          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-            <tr style="background-color: #F3F4F6;">
-              <td style="padding: 10px; font-weight: bold; width: 180px; border: 1px solid #E5E7EB;">Nama Lengkap</td>
-              <td style="padding: 10px; border: 1px solid #E5E7EB;">${escapeHtml(full_name)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">No. WhatsApp</td>
-              <td style="padding: 10px; border: 1px solid #E5E7EB;"><a href="https://wa.me/${whatsappNumber}" style="color: #ea580c; text-decoration: none; font-weight: 500;">${escapeHtml(whatsapp)}</a></td>
-            </tr>
-            <tr style="background-color: #F3F4F6;">
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Email</td>
-              <td style="padding: 10px; border: 1px solid #E5E7EB;"><a href="mailto:${escapeHtml(email)}" style="color: #ea580c; text-decoration: none;">${escapeHtml(email)}</a></td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Jenis Website</td>
-              <td style="padding: 10px; font-weight: bold; color: #111827; border: 1px solid #E5E7EB;">${escapeHtml(website_type)}</td>
-            </tr>
-            <tr style="background-color: #F3F4F6;">
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Estimasi Budget</td>
-              <td style="padding: 10px; color: #047857; font-weight: 600; border: 1px solid #E5E7EB;">${escapeHtml(budget)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB;">Deadline</td>
-              <td style="padding: 10px; border: 1px solid #E5E7EB;">${escapeHtml(deadline)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 10px; font-weight: bold; border: 1px solid #E5E7EB; vertical-align: top;">Kebutuhan & Deskripsi</td>
-              <td style="padding: 10px; border: 1px solid #E5E7EB; white-space: pre-wrap;">${escapeHtml(description)}</td>
-            </tr>
-          </table>
-          <div style="text-align: center; margin-top: 25px;">
-            <a href="https://wa.me/${whatsappNumber}?text=${replyText}" style="background-color: #EA580C; color: #FFFFFF; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Hubungi via WhatsApp</a>
-          </div>
-        </div>
-      `;
-
-        await resend.emails.send({
-          from: `Simpluse Portal <${resendSender}>`,
-          to: ownerEmail,
-          replyTo: email,
-          subject: `[Order Baru] ${website_type} - ${full_name}`,
-          html: emailHtml
-        });
-      } catch (resendError) {
+      sendOwnerNotification({
+        resendApiKey,
+        ownerEmail,
+        resendSender,
+        full_name,
+        whatsapp,
+        email,
+        website_type,
+        budget,
+        deadline,
+        description
+      }).catch((resendError) => {
         console.error('Resend email sending failed:', resendError);
-      }
+      });
     }
 
     return res.status(200).json(savedOrder);
