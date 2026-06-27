@@ -712,7 +712,6 @@ export const db = {
       return newOrder;
     }
 
-    requireSupabase();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
     if (order.source_channel === 'reseller') {
@@ -727,7 +726,8 @@ export const db = {
 
     if (!response.ok) {
       const details = await response.json().catch(() => ({}));
-      throw new Error(details.error || 'Gagal mengirim order ke server.');
+      const message = [details.error, details.details].filter(Boolean).join(' Detail: ');
+      throw new Error(message || `Gagal mengirim order ke server. HTTP ${response.status}`);
     }
 
     return await response.json();

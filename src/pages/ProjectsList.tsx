@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../lib/db';
+import { printProjectInvoice } from '../lib/invoice';
 import { Project, ProjectStatus } from '../types';
 import { 
   FolderGit2, 
@@ -7,6 +8,7 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
+  Printer,
   Layers, 
   PhoneCall, 
   Sparkles,
@@ -172,7 +174,9 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
               </thead>
               <tbody className="divide-y divide-dark-650/40 text-slate-300">
                 {filteredProjects.map((p) => {
-                  const tagihanSisa = p.total_price - p.dp_paid;
+                  const isPerUser = p.payment_scheme === 'per_user_contract';
+                  const monthlyAmount = Number(p.monthly_amount || 0) || (Number(p.price_per_user || 0) * Number(p.user_count || 0)) || Number(p.total_price || 0);
+                  const tagihanSisa = isPerUser ? monthlyAmount : p.total_price - p.dp_paid;
                   return (
                     <tr key={p.id} className="hover:bg-dark-850/40 transition">
                       
@@ -241,9 +245,14 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
 
                       {/* Payment tracking */}
                       <td className="p-4">
-                        <div className="font-bold text-white font-mono">{rupiah(p.total_price)}</div>
+                        <div className="font-bold text-white font-mono">{rupiah(isPerUser ? monthlyAmount : p.total_price)}</div>
                         <div className="space-y-0.5 text-[10px] mt-1 font-mono">
-                          <p className="text-emerald-400">Bayar (DP): {rupiah(p.dp_paid)}</p>
+                          <p className="text-slate-400">
+                            {isPerUser
+                              ? `Per bulan${p.user_count ? ` / ${p.user_count} user` : ''}`
+                              : 'Sekali bayar'}
+                          </p>
+                          {!isPerUser && <p className="text-emerald-400">Bayar (DP): {rupiah(p.dp_paid)}</p>}
                           {p.reseller_name && (
                             <p className="text-brand-orange-400">
                               Komisi {Number(p.commission_rate || 0)}%: {rupiah(Number(p.estimated_commission || 0))}
@@ -275,6 +284,15 @@ export default function ProjectsList({ onNavigate }: ProjectsListProps) {
                       {/* Action buttons */}
                       <td className="p-4 text-right">
                         <div className="inline-flex items-center gap-1.5 bg-dark-900 border border-dark-600 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => printProjectInvoice(p)}
+                            title="Cetak Tagihan"
+                            className="p-2 text-slate-400 hover:text-brand-orange-400 hover:bg-brand-orange-500/10 rounded-lg transition cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+
                           <button
                             onClick={() => onNavigate(`#/dashboard/projects/edit/${p.id}`)}
                             title="Edit Proyek"
