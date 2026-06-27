@@ -712,11 +712,69 @@ export const db = {
       return newOrder;
     }
 
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
     if (order.source_channel === 'reseller') {
-      headers.Authorization = `Bearer ${await getSupabaseAccessToken()}`;
+      const client = requireSupabase();
+      const accessToken = await getSupabaseAccessToken();
+      const payload = {
+        full_name: order.full_name || '',
+        whatsapp: order.whatsapp || '',
+        email: order.email || '',
+        website_type: order.website_type || '',
+        description: order.description || '',
+        budget: order.budget || '',
+        deadline: order.deadline || '',
+        status: order.status || 'new',
+        source_channel: 'reseller',
+        submitted_by: order.submitted_by || null,
+        reseller_id: order.reseller_id || null,
+        reseller_name: order.reseller_name || null,
+        payment_scheme: order.payment_scheme || 'one_time',
+        deal_price: Number(order.deal_price) || 0,
+        price_per_user: Number(order.price_per_user) || 0,
+        user_count: Number(order.user_count) || 0,
+        monthly_amount: Number(order.monthly_amount) || 0,
+        support_scope: order.support_scope || '',
+        maintenance_terms: order.maintenance_terms || '',
+        commission_rate: Number(order.commission_rate) || 0,
+        estimated_commission: Number(order.estimated_commission) || 0
+      };
+
+      const { data, error } = await client
+        .from('orders')
+        .insert([payload])
+        .select()
+        .single();
+
+      if (!error && data) {
+        return data as Order;
+      }
+
+      const message = error?.message || 'Gagal menyimpan order afiliasi langsung ke Supabase.';
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(order)
+      });
+
+      if (!response.ok) {
+        const rawError = await response.text().catch(() => '');
+        let details: { error?: string; details?: string } = {};
+        try {
+          details = rawError ? JSON.parse(rawError) : {};
+        } catch {
+          details = { error: rawError };
+        }
+        const serverMessage = [details.error, details.details].filter(Boolean).join(' Detail: ');
+        throw new Error(`${message}${serverMessage ? ` Server: ${serverMessage}` : ''}`);
+      }
+
+      return await response.json();
     }
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
     const response = await fetch('/api/orders', {
       method: 'POST',
